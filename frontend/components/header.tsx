@@ -51,11 +51,13 @@ export function Header() {
             onClick={() => setActiveView("search")}
             className="flex items-center gap-2"
           >
-            <img
-              src="/vector-sphere.png"
-              alt="Vector Sphere"
-              className="h-9 w-9 object-contain"
-            />
+            <div className="nav-logo flex items-center justify-center h-9 w-9 rounded-full overflow-hidden">
+              <img
+                src="/vector-sphere.png"
+                alt="Vector Sphere"
+                className="h-7 w-7 object-contain mix-blend-multiply"
+              />
+            </div>
             <span className="text-xl font-semibold tracking-tight hidden sm:inline">Vector Market</span>
           </button>
         </div>
