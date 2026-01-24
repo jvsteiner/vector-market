@@ -91,7 +91,7 @@ export function SearchListings() {
     <div className="mx-auto max-w-4xl px-4 py-12 md:py-20">
       {/* Header */}
       <div className="mb-12 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl text-balance">
+        <h1 className="text-5xl tracking-tight text-foreground md:text-7xl text-balance" style={{ fontFamily: 'Blippo, sans-serif' }}>
           Discover Listings
         </h1>
         <p className="mt-4 text-lg text-muted-foreground text-balance">

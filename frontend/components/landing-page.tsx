@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { useSphereStore, type ConnectionStatus } from "@/lib/sphere-store"
 import { Button } from "@/components/ui/button"
 import { Identicon } from "@/components/identicon"
@@ -63,6 +63,17 @@ export function LandingPage() {
     setToastMessage 
   } = useSphereStore()
 
+  const stars = useMemo(() => {
+    return Array.from({ length: 120 }, (_, i) => ({
+      id: i,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      size: Math.random() * 2 + 1,
+      delay: `${Math.random() * 8}s`,
+      duration: `${Math.random() * 4 + 4}s`,
+    }))
+  }, [])
+
   useEffect(() => {
     // Check extension status on mount
     detectSphereExtension().then(({ installed, connected }) => {
@@ -95,7 +106,24 @@ export function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+      {/* Stars */}
+      <div className="fixed inset-0 pointer-events-none">
+        {stars.map((star) => (
+          <div
+            key={star.id}
+            className="absolute rounded-full bg-foreground/30 twinkle"
+            style={{
+              left: star.left,
+              top: star.top,
+              width: star.size,
+              height: star.size,
+              animationDelay: star.delay,
+              animationDuration: star.duration,
+            }}
+          />
+        ))}
+      </div>
       {/* Hero Section */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-16">
         <div className="max-w-2xl mx-auto text-center space-y-8">
@@ -111,14 +139,16 @@ export function LandingPage() {
                            md:w-56 md:h-56"
               />
             </div>
-            <span className="text-4xl font-semibold tracking-tight">Vector Market</span>
           </div>
 
           {/* Headline */}
           <div className="space-y-4">
-            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-balance leading-tight">
-              The Decentralized Marketplace
+            <h1 className="text-5xl md:text-7xl tracking-tight text-balance leading-tight" style={{ fontFamily: 'Blippo, sans-serif' }}>
+              Vector Market
             </h1>
+            <p className="text-lg md:text-xl text-muted-foreground text-balance max-w-xl mx-auto">
+              The Decentralized Marketplace
+            </p>
             <p className="text-lg md:text-xl text-muted-foreground text-balance max-w-xl mx-auto">
               Buy and sell directly with anyone. No middlemen, no fees, no surveillance.
               Powered by Sphere.
