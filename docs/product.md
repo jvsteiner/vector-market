@@ -12,8 +12,8 @@ Our philosophy is that powerful security should not come at the cost of usabilit
 
 2.  **An Integrated & Fluid Marketplace:** Once connected, the user's Sphere ID is their passport to the marketplace. All interactions feel native to the web application, while the complex cryptographic operations are handled securely in the background by Sphere.
     *   **Intuitive Discovery:** Finding items is powered by a state-of-the-art vector search engine. Users can search by concept and context, not just keywords. A search for "gear for a rainy hike" will find waterproof jackets and boots, even if they don't contain those exact words.
-    *   **Direct & Encrypted Communication:** When a user contacts a seller, a chat window opens directly within the Vector Market UI. This is not a typical web chat; it is a front-end for Sphere's end-to-end encrypted P2P messaging protocol. All negotiations are private and secure.
-    *   **Effortless Transactions:** When a deal is reached, a "Pay" or "Fund Escrow" button appears in the chat. Clicking this button triggers a confirmation pop-up from the Sphere Browser Extension, detailing the transaction. The user approves the payment with a click, never leaving the application context. The web UI provides real-time feedback, showing "Awaiting Confirmation," "Transaction Sent," and "Success."
+    *   **Direct & Encrypted Communication:** When a user contacts a seller, a chat window opens directly within the Vector Market UI. This is powered by the NOSTR protocol, providing encrypted peer-to-peer messaging with relay-based caching. Sellers can optionally run a local daemon to auto-respond to inquiries when offline.
+    *   **Effortless Transactions:** When a deal is reached, a "Pay" button appears in the chat. Clicking this button triggers a confirmation pop-up from the Sphere Browser Extension, detailing the transaction. The user approves the payment with a click, never leaving the application context. The web UI provides real-time feedback, showing "Awaiting Confirmation," "Transaction Sent," and "Success."
 
 ### **Technical Architecture: A Hybrid Approach to Decentralization**
 
@@ -21,24 +21,28 @@ Vector Market is architected to maximize decentralization, security, and user co
 
 **Frontend Components:**
 
-*   **Web Application (React/Svelte/Vue):** A standard, highly responsive single-page application (SPA) that renders the user interface. Its primary responsibilities are managing the UI state and acting as the communication orchestrator between the user, the Sphere extension, and the backend services.
+*   **Web Application (Next.js/React):** A highly responsive single-page application (SPA) that renders the user interface. Its primary responsibilities are managing the UI state and acting as the communication orchestrator between the user, the Sphere extension, and the backend services.
 *   **Sphere Browser Extension Integration:** The frontend communicates directly with the Sphere extension via its provided API. It does **not** handle private keys or manage user funds. It requests actions (e.g., "sign this transaction," "send this message") which the user must approve within the extension's secure environment.
 
 **Backend & Decentralized Components:**
 
-1.  **Vector Search Service (Centralized):**
+1.  **Vector Search Service (Centralized - Qdrant):**
     *   **Function:** To provide the core "intelligent search" functionality. This service is the performance-critical engine of discovery.
-    *   **Implementation:** It runs on a dedicated server and utilizes a specialized vector database (e.g., Pinecone, Weaviate, or a self-hosted solution with Faiss). It exposes a secure API that the frontend queries to find relevant listings.
-    *   **Data Flow:** It does not store user data. It only ingests, indexes, and serves public listing information.
+    *   **Implementation:** A Qdrant vector database instance with OpenAI embeddings. When sellers create listings, the listing content is embedded via OpenAI and stored directly in Qdrant. The listing record in Qdrant IS the canonical listing data.
+    *   **Data Flow:** Listings are public marketplace data. The vector database serves as both the search index and the listing store.
 
-2.  **Listing Indexer (Backend Service):**
-    *   **Function:** This is the bridge between the P2P network and the Vector Search Service.
-    *   **Implementation:** A lightweight service that actively listens on the decentralized network for new or updated listing data broadcast by users. Upon discovering a new listing, it fetches the content, validates its format, generates vector embeddings from the text and images, and pushes those embeddings into the Vector Search database.
+2.  **NOSTR Messaging (Decentralized):**
+    *   **Function:** Provides encrypted peer-to-peer messaging between buyers and sellers.
+    *   **Implementation:** The Sphere extension manages NOSTR keys and message encryption. The web UI provides the chat interface. NOSTR relays cache messages, allowing asynchronous communication even when parties are offline.
+    *   **Optional Seller Daemon:** Sellers who want automatic responses to inquiries can run a lightweight local daemon that monitors their NOSTR inbox and responds based on configured rules. This is optional since relays cache messages for later retrieval.
 
-3.  **P2P Data Network (Decentralized):**
-    *   **Function:** This is the "database" for all marketplace listings. It ensures that the listing data is censorship-resistant and not controlled by a single entity.
-    *   **Implementation:** Utilizes a **Distributed Hash Table (DHT)** protocol (similar to those used in IPFS or BitTorrent). When a seller creates a listing via the frontend, the Sphere extension signs the listing data and broadcasts it to this peer-to-peer network. The data is replicated across participating nodes, ensuring its availability and integrity.
+3.  **Unicity Protocol (Decentralized Payments):**
+    *   **Function:** To manage all value-based transactions via token transfers.
+    *   **Implementation:** The Sphere wallet uses the Unicity Protocol for token-based payments. When a buyer pays a seller, the Sphere extension constructs and signs the token transfer transaction, submitting it to the Unicity network. The backend never takes custody of assets.
+    *   **Token Model:** Unicity uses a token-based (not account-based) model. Tokens carry coin balances and are indivisible units. Partial transfers involve splitting tokens.
 
-4.  **On-Chain Smart Contracts (Decentralized):**
-    *   **Function:** To manage all value-based transactions, including direct payments and multi-signature escrow.
-    *   **Implementation:** A suite of audited smart contracts deployed on a public, low-cost EVM-compatible blockchain (e.g., Polygon, Arbitrum). The web application helps the user construct the transaction (e.g., "send 50 USDC to address X"), but the actual signing and submission to the blockchain is handled exclusively by the Sphere wallet, ensuring the user is always in full control of their funds. The backend never takes custody of assets.
+### **Roadmap Items**
+
+*   **Escrow:** Multi-signature escrow for high-value transactions, implemented within the Unicity Protocol's token model. Enables trustless transactions with time-locked or condition-based release.
+*   **Reputation System:** On-chain reputation tied to Sphere IDs, allowing buyers and sellers to build trust over time.
+*   **Image Search:** Vector search for product images in addition to text descriptions.
