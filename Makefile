@@ -1,8 +1,10 @@
 .PHONY: install dev build lint clean deploy serve kill-ports stop preview generate-rewrites help
+.PHONY: ext-install ext-dev ext-build ext-lint ext-clean
 
 # Absolute paths
 ROOT_DIR := $(shell pwd)
 FRONTEND_DIR := $(ROOT_DIR)/frontend
+EXTENSION_DIR := $(ROOT_DIR)/sphere-extension
 OUT_DIR := $(FRONTEND_DIR)/out
 SCRIPTS_DIR := $(FRONTEND_DIR)/scripts
 
@@ -13,15 +15,15 @@ FIREBASE_PROJECT := $(shell grep -o '"projects"[^}]*' $(FRONTEND_DIR)/.firebaser
 help:
 	@echo "Vector Market - Available commands:"
 	@echo ""
-	@echo "Development:"
-	@echo "  make install           Install all dependencies"
+	@echo "Frontend Development:"
+	@echo "  make install           Install all dependencies (frontend + extension)"
 	@echo "  make dev               Start Next.js dev server (port 3000)"
-	@echo "  make lint              Run ESLint"
+	@echo "  make lint              Run ESLint on frontend"
 	@echo "  make kill-ports        Kill process on port 3000"
 	@echo "  make stop              Stop dev server"
 	@echo "  make clean             Remove node_modules and build output"
 	@echo ""
-	@echo "Build & Deploy:"
+	@echo "Frontend Build & Deploy:"
 	@echo "  make build             Build static site and generate rewrites"
 	@echo "  make preview           Build and serve locally for preview"
 	@echo "  make generate-rewrites Regenerate Firebase rewrites from out/"
@@ -29,18 +31,27 @@ help:
 	@echo "  make deploy-only       Deploy to Firebase without rebuilding"
 	@echo "  make firebase-init     Initialize Firebase project (run once)"
 	@echo ""
-	@echo "After running 'make dev':"
-	@echo "  - Dev server: http://localhost:3000"
+	@echo "Browser Extension:"
+	@echo "  make ext-install       Install extension dependencies"
+	@echo "  make ext-dev           Start extension dev/watch mode"
+	@echo "  make ext-build         Build extension for production"
+	@echo "  make ext-lint          Run ESLint on extension"
+	@echo "  make ext-clean         Remove extension build output"
+	@echo ""
+	@echo "After building extension:"
+	@echo "  - Load unpacked from sphere-extension/dist/ in chrome://extensions"
 
 # =============================================================================
 # Development
 # =============================================================================
 
-# Install dependencies
+# Install dependencies (frontend + extension)
 install:
-	@echo "Installing dependencies..."
+	@echo "Installing frontend dependencies..."
 	cd $(FRONTEND_DIR) && npm install
-	@echo "Dependencies installed"
+	@echo "Installing extension dependencies..."
+	cd $(EXTENSION_DIR) && npm install
+	@echo "All dependencies installed"
 
 # Start dev server
 dev: kill-ports
@@ -112,10 +123,45 @@ deploy-only:
 # Cleanup
 # =============================================================================
 
-# Remove node_modules and build output
+# Remove node_modules and build output (all projects)
 clean:
-	@echo "Cleaning up..."
+	@echo "Cleaning up frontend..."
 	rm -rf $(FRONTEND_DIR)/node_modules
 	rm -rf $(OUT_DIR)
 	rm -rf $(FRONTEND_DIR)/.next
+	@echo "Cleaning up extension..."
+	rm -rf $(EXTENSION_DIR)/node_modules
+	rm -rf $(EXTENSION_DIR)/dist
 	@echo "Cleaned"
+
+# =============================================================================
+# Browser Extension
+# =============================================================================
+
+# Install extension dependencies
+ext-install:
+	@echo "Installing extension dependencies..."
+	cd $(EXTENSION_DIR) && npm install
+	@echo "Extension dependencies installed"
+
+# Start extension dev/watch mode
+ext-dev:
+	@echo "Starting extension dev mode..."
+	cd $(EXTENSION_DIR) && npm run dev
+
+# Build extension for production
+ext-build:
+	@echo "Building extension..."
+	cd $(EXTENSION_DIR) && npm run build
+	@echo "Extension built. Load unpacked from $(EXTENSION_DIR)/dist/"
+
+# Run linter on extension
+ext-lint:
+	@echo "Running ESLint on extension..."
+	cd $(EXTENSION_DIR) && npm run lint
+
+# Clean extension build output
+ext-clean:
+	@echo "Cleaning extension build..."
+	rm -rf $(EXTENSION_DIR)/dist
+	@echo "Extension cleaned"

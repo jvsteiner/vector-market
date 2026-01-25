@@ -40,7 +40,7 @@ async function detectSphereExtension(): Promise<{ installed: boolean; connected:
 }
 
 /**
- * Connect to the Sphere wallet and get identity + balance.
+ * Connect to the Sphere wallet and get identity + balance + nametag.
  */
 async function connectToSphere(): Promise<{
   address: string
@@ -59,9 +59,20 @@ async function connectToSphere(): Promise<{
   const alphaBalance = balances.find(b => b.coinId === ALPHA_COIN_ID);
   const balance = alphaBalance ? parseFloat(alphaBalance.amount) : 0;
 
+  // Try to get the user's registered nametag
+  let nametag: string | undefined = identity.label;
+  try {
+    const storedNametag = await sphere.getMyNametag();
+    if (storedNametag?.name) {
+      nametag = `@${storedNametag.name}`;
+    }
+  } catch {
+    // Nametag fetch failed, use label as fallback
+  }
+
   return {
     address: identity.publicKey,
-    nametag: identity.label,
+    nametag,
     balance
   };
 }

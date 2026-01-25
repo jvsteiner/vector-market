@@ -30,10 +30,13 @@ import { getSphere, ALPHA_COIN_ID } from "@/lib/sphere-api"
 /**
  * Initiate a payment via the Sphere extension.
  * Opens the extension popup for user approval.
+ *
+ * @param amount - Amount in ALPHA tokens
+ * @param recipient - Address or @nametag to send to
  */
 async function initiatePayment(
   amount: number,
-  toAddress: string
+  recipient: string
 ): Promise<{ success: boolean; txHash?: string; error?: string }> {
   const sphere = getSphere();
   if (!sphere) {
@@ -42,7 +45,7 @@ async function initiatePayment(
 
   try {
     const result = await sphere.sendTokens({
-      recipient: toAddress,
+      recipient: recipient,
       coinId: ALPHA_COIN_ID,
       amount: amount.toString(),
       message: "Payment via Vector Market"
@@ -148,7 +151,12 @@ export function Messages() {
     setShowPaymentModal(false)
     setTransactionStatus("pending-confirmation")
 
-    const result = await initiatePayment(amount, selectedConversation)
+    // Prefer nametag if available, otherwise use raw address
+    const recipient = currentConversation?.nametag
+      ? `@${currentConversation.nametag}`
+      : selectedConversation
+
+    const result = await initiatePayment(amount, recipient)
 
     if (result.success) {
       setTransactionStatus("success")

@@ -53,6 +53,25 @@ export interface NostrPublicKey {
 }
 
 /**
+ * Result of resolving a nametag to its address.
+ */
+export interface NametagResolution {
+  nametag: string;
+  pubkey: string;
+  proxyAddress: string;
+}
+
+/**
+ * Stored nametag information for the current user.
+ */
+export interface StoredNametag {
+  name: string;
+  tokenJson: string;
+  proxyAddress: string;
+  timestamp: number;
+}
+
+/**
  * The Sphere API interface exposed by the browser extension.
  */
 export interface SphereAPI {
@@ -82,6 +101,12 @@ export interface SphereAPI {
 
   /** Sign a NOSTR event hash - opens popup for approval */
   signNostrEvent(eventHash: string): Promise<string>;
+
+  /** Resolve a nametag to its pubkey and proxy address */
+  resolveNametag(nametag: string): Promise<NametagResolution | null>;
+
+  /** Get the user's registered nametag, if any */
+  getMyNametag(): Promise<StoredNametag | null>;
 }
 
 // Extend the Window interface
