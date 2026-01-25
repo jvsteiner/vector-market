@@ -2,6 +2,7 @@
 
 import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
+import { getSphere, ALPHA_COIN_ID } from "./sphere-api"
 
 export type ConnectionStatus = 
   | "checking"
@@ -92,6 +93,9 @@ interface SphereStore {
   toastMessage: { type: "success" | "error" | "info"; message: string } | null
   setToastMessage: (toast: { type: "success" | "error" | "info"; message: string } | null) => void
 
+  // Balance refresh
+  refreshBalance: () => Promise<void>
+
   // Reset
   reset: () => void
   disconnect: () => void
@@ -165,6 +169,25 @@ export const useSphereStore = create<SphereStore>()(
         set({ selectedConversation }),
 
       setToastMessage: (toastMessage) => set({ toastMessage }),
+
+      refreshBalance: async () => {
+        const sphere = getSphere();
+        if (!sphere) return;
+
+        try {
+          const balances = await sphere.getBalances();
+          const alphaBalance = balances.find(b => b.coinId === ALPHA_COIN_ID);
+
+          set((state) => ({
+            identity: state.identity ? {
+              ...state.identity,
+              balance: alphaBalance ? parseFloat(alphaBalance.amount) : 0
+            } : null
+          }));
+        } catch (error) {
+          console.error("Failed to refresh balance:", error);
+        }
+      },
 
       reset: () => set(initialState),
       

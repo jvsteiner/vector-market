@@ -13,11 +13,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Identicon } from "@/components/identicon"
-import { 
-  Send, 
-  ArrowLeft, 
-  Shield, 
-  MessageCircle, 
+import {
+  Send,
+  ArrowLeft,
+  Shield,
+  MessageCircle,
   Wallet,
   DollarSign,
   CheckCircle2,
@@ -25,23 +25,39 @@ import {
   AlertCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getSphere, ALPHA_COIN_ID } from "@/lib/sphere-api"
 
-// Simulate Sphere payment transaction
-function initiatePayment(amount: number, toAddress: string): Promise<{ success: boolean; txHash?: string; error?: string }> {
-  return new Promise((resolve) => {
-    // Simulate user approving in extension
-    setTimeout(() => {
-      // 90% success rate for demo
-      if (Math.random() > 0.1) {
-        resolve({ 
-          success: true, 
-          txHash: "0x" + Array.from({ length: 64 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("")
-        })
-      } else {
-        resolve({ success: false, error: "Transaction rejected by user" })
-      }
-    }, 3000)
-  })
+/**
+ * Initiate a payment via the Sphere extension.
+ * Opens the extension popup for user approval.
+ */
+async function initiatePayment(
+  amount: number,
+  toAddress: string
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
+  const sphere = getSphere();
+  if (!sphere) {
+    return { success: false, error: "Sphere extension not available" };
+  }
+
+  try {
+    const result = await sphere.sendTokens({
+      recipient: toAddress,
+      coinId: ALPHA_COIN_ID,
+      amount: amount.toString(),
+      message: "Payment via Vector Market"
+    });
+
+    return {
+      success: true,
+      txHash: result.transactionId
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Transaction failed"
+    };
+  }
 }
 
 export function Messages() {
@@ -58,6 +74,7 @@ export function Messages() {
     setToastMessage,
     updateConversationEscrow,
     setAgreedPrice,
+    refreshBalance,
   } = useSphereStore()
 
   const [messageInput, setMessageInput] = useState("")
@@ -136,7 +153,10 @@ export function Messages() {
     if (result.success) {
       setTransactionStatus("success")
       setToastMessage({ type: "success", message: `Payment of ${formatAmount(amount)} sent successfully!` })
-      
+
+      // Refresh balance after successful payment
+      refreshBalance()
+
       // Add payment message to conversation
       const paymentMessage: Message = {
         id: Date.now().toString(),
@@ -170,7 +190,10 @@ export function Messages() {
       setTransactionStatus("success")
       setToastMessage({ type: "success", message: "Escrow funded successfully!" })
       updateConversationEscrow(selectedConversation, "funded")
-      
+
+      // Refresh balance after successful escrow funding
+      refreshBalance()
+
       const escrowMessage: Message = {
         id: Date.now().toString(),
         fromAddress: identity.address,

@@ -6,61 +6,73 @@ import { useEffect, useState } from "react"
 import { useSphereStore, type ConnectionStatus } from "@/lib/sphere-store"
 import { Button } from "@/components/ui/button"
 import { Identicon } from "@/components/identicon"
-import { 
-  Wallet, 
-  Download, 
-  Shield, 
-  Zap, 
+import {
+  Wallet,
+  Download,
+  Shield,
+  Zap,
   ArrowRight,
   CheckCircle2,
   Loader2,
   ExternalLink
 } from "lucide-react"
+import { waitForSphere, getSphere, ALPHA_COIN_ID } from "@/lib/sphere-api"
 
-// Simulated Sphere extension detection
-function detectSphereExtension(): Promise<{ installed: boolean; connected: boolean }> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Check for the simulated extension
-      const win = window as unknown as { sphere?: { isConnected?: boolean } }
-      if (win.sphere) {
-        resolve({ installed: true, connected: !!win.sphere.isConnected })
-      } else {
-        // For demo purposes, simulate extension is installed but not connected
-        resolve({ installed: true, connected: false })
-      }
-    }, 1000)
-  })
+/**
+ * Detect if the Sphere extension is installed and if a wallet is connected.
+ */
+async function detectSphereExtension(): Promise<{ installed: boolean; connected: boolean }> {
+  const ready = await waitForSphere();
+
+  if (!ready || !window.sphere) {
+    return { installed: false, connected: false };
+  }
+
+  try {
+    const identity = await window.sphere.getActiveIdentity();
+    return {
+      installed: true,
+      connected: identity !== null
+    };
+  } catch {
+    return { installed: true, connected: false };
+  }
 }
 
-// Simulated Sphere connection
-function connectToSphere(): Promise<{ 
+/**
+ * Connect to the Sphere wallet and get identity + balance.
+ */
+async function connectToSphere(): Promise<{
   address: string
   nametag?: string
-  balance: number 
+  balance: number
 }> {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // Simulate successful connection
-      const address = "0x" + Array.from({ length: 40 }, () => 
-        "0123456789abcdef"[Math.floor(Math.random() * 16)]
-      ).join("")
-      
-      resolve({
-        address,
-        nametag: "@merchant_" + Math.floor(Math.random() * 1000),
-        balance: parseFloat((Math.random() * 10).toFixed(4))
-      })
-    }, 1500)
-  })
+  const sphere = getSphere();
+  if (!sphere) {
+    throw new Error("Sphere extension not installed");
+  }
+
+  const identity = await sphere.connect();
+  const balances = await sphere.getBalances();
+
+  // Find ALPHA balance
+  const alphaBalance = balances.find(b => b.coinId === ALPHA_COIN_ID);
+  const balance = alphaBalance ? parseFloat(alphaBalance.amount) : 0;
+
+  return {
+    address: identity.publicKey,
+    nametag: identity.label,
+    balance
+  };
 }
 
 export function LandingPage() {
-  const { 
-    connectionStatus, 
-    setConnectionStatus, 
+  const {
+    connectionStatus,
+    setConnectionStatus,
     setIdentity,
-    setToastMessage 
+    setToastMessage,
+    disconnect
   } = useSphereStore()
 
   const [stars, setStars] = useState<Array<{ id: number; left: string; top: string; size: number; delay: string; duration: string }>>([])
@@ -89,6 +101,34 @@ export function LandingPage() {
       }
     })
   }, [])
+
+  // Periodically check if wallet is still connected
+  useEffect(() => {
+    if (connectionStatus !== "connected") return;
+
+    const checkConnection = async () => {
+      const sphere = getSphere();
+      if (!sphere) {
+        disconnect();
+        return;
+      }
+
+      try {
+        const identity = await sphere.getActiveIdentity();
+        if (!identity) {
+          // Wallet was locked or disconnected
+          disconnect();
+          setToastMessage({ type: "info", message: "Wallet disconnected" });
+        }
+      } catch {
+        // Error checking identity - wallet may be locked
+        disconnect();
+      }
+    };
+
+    const interval = setInterval(checkConnection, 5000);
+    return () => clearInterval(interval);
+  }, [connectionStatus, disconnect, setToastMessage]);
 
   const handleConnect = async () => {
     setConnectionStatus("connecting")
