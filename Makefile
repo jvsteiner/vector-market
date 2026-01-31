@@ -1,5 +1,5 @@
 .PHONY: install dev build lint clean deploy serve kill-ports stop preview generate-rewrites help
-.PHONY: ext-install ext-dev ext-build ext-lint ext-clean
+.PHONY: ext-install ext-dev ext-build ext-package ext-publish ext-version ext-lint ext-clean
 
 # Absolute paths
 ROOT_DIR := $(shell pwd)
@@ -35,6 +35,12 @@ help:
 	@echo "  make ext-install       Install extension dependencies"
 	@echo "  make ext-dev           Start extension dev/watch mode"
 	@echo "  make ext-build         Build extension for production"
+	@echo "  make ext-package       Build and zip extension for distribution"
+	@echo "  make ext-publish       Package and publish as GitHub Release"
+	@echo "  make ext-version       Show current extension version"
+	@echo "  make ext-bump-patch    Bump patch version (0.1.0 → 0.1.1)"
+	@echo "  make ext-bump-minor    Bump minor version (0.1.0 → 0.2.0)"
+	@echo "  make ext-bump-major    Bump major version (0.1.0 → 1.0.0)"
 	@echo "  make ext-lint          Run ESLint on extension"
 	@echo "  make ext-clean         Remove extension build output"
 	@echo ""
@@ -154,6 +160,43 @@ ext-build:
 	@echo "Building extension..."
 	cd $(EXTENSION_DIR) && npm run build
 	@echo "Extension built. Load unpacked from $(EXTENSION_DIR)/dist/"
+
+# Build and zip extension for distribution
+ext-package:
+	@echo "Packaging extension..."
+	cd $(EXTENSION_DIR) && npm run package
+	@echo "Zip ready at $(EXTENSION_DIR)/sphere-wallet-v*.zip"
+
+# Package and publish as GitHub Release
+EXT_VERSION := $(shell node -p "require('./sphere-extension/package.json').version")
+ext-publish: ext-package
+	@echo "Publishing Sphere Wallet v$(EXT_VERSION) to GitHub..."
+	gh release create "v$(EXT_VERSION)" \
+		$(EXTENSION_DIR)/sphere-wallet-v$(EXT_VERSION).zip \
+		--title "Sphere Wallet v$(EXT_VERSION)" \
+		--notes "Download **sphere-wallet-v$(EXT_VERSION).zip**, unzip, then load as unpacked extension in \`chrome://extensions\` (Developer mode)."
+	@echo "Published: https://github.com/$$(gh repo view --json nameWithOwner -q .nameWithOwner)/releases/tag/v$(EXT_VERSION)"
+
+# Show current extension version
+ext-version:
+	@echo "Sphere Wallet v$(EXT_VERSION)"
+
+# Bump version helper — updates package.json and manifest.json
+define bump-version
+	cd $(EXTENSION_DIR) && npm version $(1) --no-git-tag-version
+	@NEW_VER=$$(node -p "require('./sphere-extension/package.json').version"); \
+	sed -i '' "s/\"version\": \".*\"/\"version\": \"$$NEW_VER\"/" $(EXTENSION_DIR)/public/manifest.json; \
+	echo "Bumped to v$$NEW_VER"
+endef
+
+ext-bump-patch:
+	$(call bump-version,patch)
+
+ext-bump-minor:
+	$(call bump-version,minor)
+
+ext-bump-major:
+	$(call bump-version,major)
 
 # Run linter on extension
 ext-lint:

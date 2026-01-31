@@ -5,8 +5,8 @@
  * injected by the Sphere browser extension.
  */
 
-// ALPHA token coin ID (matches sphere-extension constants)
-export const ALPHA_COIN_ID = "0x0000000000000000000000000000000000000000000000000000000000000001";
+// UCT token coin ID (matches sphere-extension constants)
+export const ALPHA_COIN_ID = "455ad8720656b08e8dbd5bac1f3c73eeea5431565f6c1c3af742b1aa12d41d89";
 
 /**
  * Identity information returned by the Sphere extension.
