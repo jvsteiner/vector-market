@@ -8,38 +8,44 @@ import { Input } from "@/components/ui/input"
 import { Identicon } from "@/components/identicon"
 import { Search, Loader2, MessageCircle, Wallet, Shield, Zap } from "lucide-react"
 
-// Mock search results for demo
-const mockResults: Listing[] = [
-  {
-    id: "1",
-    hash: "a1b2c3d4e5f6789012345678901234567890123456789012345678901234",
-    sellerAddress: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-    sellerNametag: "@alice_seller",
-    timestamp: Date.now() - 3600000,
-    description: "MacBook Air M2 2022 - 16GB RAM, Space Gray",
-    price: 8.5,
-    currency: "ALPHA",
-  },
-  {
-    id: "2",
-    hash: "b2c3d4e5f678901234567890123456789012345678901234567890123456",
-    sellerAddress: "0x8Ba1f109551bD432803012645Hc136E7aF8d3B89",
-    sellerNametag: "@tech_trader",
-    timestamp: Date.now() - 7200000,
-    description: "iPhone 15 Pro Max 256GB - Natural Titanium",
-    price: 12.0,
-    currency: "ALPHA",
-  },
-  {
-    id: "3",
-    hash: "c3d4e5f67890123456789012345678901234567890123456789012345678901",
-    sellerAddress: "0x1234567890abcdef1234567890abcdef12345678",
-    timestamp: Date.now() - 10800000,
-    description: "Sony WH-1000XM5 Headphones - Like New",
-    price: 2.5,
-    currency: "ALPHA",
-  },
-]
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+
+// Backend search response type
+interface SearchIntent {
+  id: string
+  score: number
+  agent_nametag: string | null
+  agent_public_key: string | null
+  description: string
+  intent_type: "sell" | "buy"
+  category: string | null
+  price: number | null
+  currency: string
+  location: string | null
+  contact_method: string
+  contact_handle: string
+  created_at: string
+  expires_at: string
+}
+
+// Transform backend response to frontend Listing type
+function transformToListing(intent: SearchIntent): Listing {
+  // Use nametag as primary identifier, fall back to public key
+  const nametag = intent.agent_nametag
+    ? `@${intent.agent_nametag}`
+    : intent.contact_handle || undefined
+
+  return {
+    id: intent.id,
+    hash: intent.id,
+    sellerAddress: intent.agent_public_key || intent.id,
+    sellerNametag: nametag,
+    timestamp: new Date(intent.created_at).getTime(),
+    description: intent.description,
+    price: intent.price ?? undefined,
+    currency: intent.currency,
+  }
+}
 
 export function SearchListings() {
   const { identity, setActiveView, setSelectedConversation, addConversation } =
@@ -56,12 +62,30 @@ export function SearchListings() {
     setIsSearching(true)
     setHasSearched(true)
 
-    // Simulate search delay
-    await new Promise((resolve) => setTimeout(resolve, 1200))
+    try {
+      const response = await fetch(`${API_BASE}/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: searchQuery,
+          filters: { intent_type: "sell" },
+          limit: 20,
+        }),
+      })
 
-    // Return mock results
-    setResults(mockResults)
-    setIsSearching(false)
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const listings = (data.intents as SearchIntent[]).map(transformToListing)
+      setResults(listings)
+    } catch (error) {
+      console.error("Search error:", error)
+      setResults([])
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   const handleContactSeller = (listing: Listing) => {

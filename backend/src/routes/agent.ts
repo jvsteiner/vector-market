@@ -8,12 +8,15 @@ export const agentRouter = Router();
 
 // POST /register - Register a new agent (no auth required)
 agentRouter.post('/register', async (req: Request, res: Response) => {
-  const { name, public_key, nostr_pubkey } = req.body;
+  const { name, nametag, public_key, nostr_pubkey } = req.body;
 
-  if (!name || !public_key) {
-    res.status(400).json({ error: 'name and public_key required' });
+  if (!public_key) {
+    res.status(400).json({ error: 'public_key required' });
     return;
   }
+
+  // Clean nametag (remove @ prefix if present)
+  const cleanNametag = nametag?.replace(/^@/, '').toLowerCase().trim() || null;
 
   // Validate public key format
   try {
@@ -38,11 +41,15 @@ agentRouter.post('/register', async (req: Request, res: Response) => {
 
   // Register
   const result = await query(
-    'INSERT INTO agents (public_key, name, nostr_pubkey) VALUES ($1, $2, $3) RETURNING id',
-    [public_key, name, nostr_pubkey || null]
+    'INSERT INTO agents (public_key, nametag, display_name, nostr_pubkey) VALUES ($1, $2, $3, $4) RETURNING id',
+    [public_key, cleanNametag, name || null, nostr_pubkey || null]
   );
 
-  res.status(201).json({ agentId: result.rows[0].id, name });
+  res.status(201).json({
+    agentId: result.rows[0].id,
+    nametag: cleanNametag,
+    displayName: name || null,
+  });
 });
 
 // GET /me - Get current agent info (requires auth)

@@ -67,6 +67,8 @@ searchRouter.post('/', async (req: Request, res: Response) => {
   const intents = results.map(r => ({
     id: r.payload?.intent_id,
     score: r.score,
+    agent_nametag: r.payload?.agent_nametag,
+    agent_public_key: r.payload?.agent_public_key,
     description: r.payload?.description,
     intent_type: r.payload?.intent_type,
     category: r.payload?.category,

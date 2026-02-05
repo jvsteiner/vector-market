@@ -2,13 +2,15 @@
 CREATE TABLE IF NOT EXISTS agents (
   id SERIAL PRIMARY KEY,
   public_key TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
+  nametag TEXT UNIQUE,           -- Unicity nametag (e.g., 'alice' for @alice)
+  display_name TEXT,             -- Optional friendly display name
   nostr_pubkey TEXT,
   registered_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_agents_public_key ON agents(public_key);
+CREATE INDEX IF NOT EXISTS idx_agents_nametag ON agents(nametag);
 
 -- Intent metadata (stored alongside Qdrant vectors)
 -- This provides relational queries the vector DB can't do

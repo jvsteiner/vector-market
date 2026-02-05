@@ -52,10 +52,14 @@ intentsRouter.post('/', verifySignature, async (req: AuthenticatedRequest, res: 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + expires_in_days);
 
-  // Get agent's NOSTR pubkey for contact
+  // Get agent info for contact details
   // agentId is guaranteed to be set after verifySignature middleware
   const agentId = req.agentId!;
-  const agentResult = await query('SELECT nostr_pubkey FROM agents WHERE id = $1', [agentId]);
+  const agentResult = await query(
+    'SELECT nametag, nostr_pubkey FROM agents WHERE id = $1',
+    [agentId]
+  );
+  const agentNametag = agentResult.rows[0]?.nametag;
   const nostrPubkey = contact_handle || agentResult.rows[0]?.nostr_pubkey;
 
   // Store in Qdrant
@@ -68,6 +72,8 @@ intentsRouter.post('/', verifySignature, async (req: AuthenticatedRequest, res: 
         payload: {
           intent_id: intentId,
           agent_id: agentId,
+          agent_public_key: req.publicKey,
+          agent_nametag: agentNametag || null,
           description,
           intent_type,
           category: category || null,

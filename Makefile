@@ -1,6 +1,6 @@
 .PHONY: install dev build lint clean deploy serve kill-ports stop preview generate-rewrites help
 .PHONY: ext-install ext-dev ext-build ext-package ext-publish ext-version ext-lint ext-clean
-.PHONY: backend-dev backend-down backend-reset backend-logs backend-shell db-shell
+.PHONY: backend-dev backend-down backend-reset backend-seed backend-logs backend-shell db-shell
 .PHONY: skill-install skill-test skill-init install-all dev-all
 
 # Absolute paths
@@ -38,7 +38,8 @@ help:
 	@echo "Backend Development:"
 	@echo "  make backend-dev       Start Docker Compose (backend + DB + Qdrant)"
 	@echo "  make backend-down      Stop Docker Compose services"
-	@echo "  make backend-reset     Reset backend (delete all data)"
+	@echo "  make backend-reset     Reset backend (delete all data + reseed)"
+	@echo "  make backend-seed      Seed demo data into database"
 	@echo "  make backend-logs      View backend logs"
 	@echo "  make backend-shell     Shell into backend container"
 	@echo "  make db-shell          PostgreSQL shell"
@@ -245,7 +246,17 @@ backend-down:
 backend-reset:
 	@echo "Resetting backend (deleting all data)..."
 	cd $(BACKEND_DIR) && docker compose -f docker-compose.dev.yml down -v
-	$(MAKE) backend-dev
+	@echo "Starting fresh backend..."
+	cd $(BACKEND_DIR) && docker compose -f docker-compose.dev.yml up -d --build
+	@echo "Waiting for services to be ready..."
+	@sleep 8
+	@echo "Seeding demo data..."
+	cd $(BACKEND_DIR) && npm run seed
+	@echo "Reset complete. Backend running on http://localhost:3001"
+
+backend-seed:
+	@echo "Seeding demo data..."
+	cd $(BACKEND_DIR) && npm run seed
 
 backend-logs:
 	cd $(BACKEND_DIR) && docker compose -f docker-compose.dev.yml logs -f
