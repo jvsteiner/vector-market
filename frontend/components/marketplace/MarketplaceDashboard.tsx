@@ -20,15 +20,17 @@ export default function MarketplaceDashboard() {
   const [isExiting, setIsExiting] = useState(false);
   const { connectionStatus } = useSphereStore();
 
-  // Skip splash if already seen and connected
+  // On mount, check if we should skip splash
   useEffect(() => {
     const splashSeen = localStorage.getItem(SPLASH_KEY);
-    if (splashSeen && connectionStatus === "connected") {
-      setScreen("dashboard");
-    } else if (splashSeen) {
-      setScreen("onboarding");
+    if (splashSeen) {
+      // If already connected, go straight to dashboard
+      // Otherwise go to onboarding
+      setScreen(connectionStatus === "connected" ? "dashboard" : "onboarding");
     }
-  }, [connectionStatus]);
+    // Only run on mount, not on connectionStatus changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSplashEnter = () => {
     setIsExiting(true);
@@ -58,7 +60,10 @@ export default function MarketplaceDashboard() {
   return (
     <div className="flex flex-col h-screen bg-[#0d0d0d] overflow-hidden">
       {/* Dashboard Header */}
-      <DashboardHeader onDisconnect={() => setScreen("onboarding")} />
+      <DashboardHeader
+        onDisconnect={() => setScreen("onboarding")}
+        onConnectClick={() => setScreen("onboarding")}
+      />
 
       {/* Filter Bar */}
       <FilterBar

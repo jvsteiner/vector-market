@@ -316,6 +316,15 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
               Sphere extension detected
             </p>
           )}
+
+          {/* Skip option */}
+          <button
+            onClick={onComplete}
+            disabled={isConnecting}
+            className="w-full mt-3 py-3 text-white/50 hover:text-white text-sm transition-colors"
+          >
+            Browse without connecting
+          </button>
         </div>
       </div>
     </div>
