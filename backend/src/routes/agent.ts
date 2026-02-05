@@ -21,8 +21,10 @@ agentRouter.post('/register', async (req: Request, res: Response) => {
     if (bytes.length !== 33 && bytes.length !== 65) {
       throw new Error('Invalid key length');
     }
-    secp256k1.ProjectivePoint.fromHex(public_key);
-  } catch {
+    // Validate it's a valid point on the curve
+    secp256k1.Point.fromHex(public_key);
+  } catch (e) {
+    console.error('Public key validation error:', e);
     res.status(400).json({ error: 'Invalid public key format' });
     return;
   }
