@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useSphereStore } from "@/lib/sphere-store";
 import SearchListings from "@/components/search-listings";
 import CreateListing from "@/components/create-listing";
-import Messages from "@/components/messages";
+import { Messages } from "@/components/messages";
 
 type LocalTab = "discover" | "sell" | "messages";
 
