@@ -1,39 +1,34 @@
-"use client"
+"use client";
 
-import React from "react"
-import { useState } from "react"
-import { useSphereStore, truncateHash, formatAddress, formatAmount, type Listing } from "@/lib/sphere-store"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Identicon } from "@/components/identicon"
-import { Search, Loader2, MessageCircle, Wallet, Shield, Zap } from "lucide-react"
+import { useState } from "react";
+import { useSphereStore, truncateHash, formatAddress, formatAmount, type Listing } from "@/lib/sphere-store";
+import { Search, Loader2, MessageCircle, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Identicon } from "@/components/identicon";
+import { cn } from "@/lib/utils";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
-// Backend search response type
 interface SearchIntent {
-  id: string
-  score: number
-  agent_nametag: string | null
-  agent_public_key: string | null
-  description: string
-  intent_type: "sell" | "buy"
-  category: string | null
-  price: number | null
-  currency: string
-  location: string | null
-  contact_method: string
-  contact_handle: string
-  created_at: string
-  expires_at: string
+  id: string;
+  score: number;
+  agent_nametag: string | null;
+  agent_public_key: string | null;
+  description: string;
+  intent_type: "sell" | "buy";
+  category: string | null;
+  price: number | null;
+  currency: string;
+  location: string | null;
+  contact_method: string;
+  contact_handle: string;
+  created_at: string;
+  expires_at: string;
 }
 
-// Transform backend response to frontend Listing type
 function transformToListing(intent: SearchIntent): Listing {
-  // Use nametag as primary identifier, fall back to public key
   const nametag = intent.agent_nametag
     ? `@${intent.agent_nametag}`
-    : intent.contact_handle || undefined
+    : intent.contact_handle || undefined;
 
   return {
     id: intent.id,
@@ -44,23 +39,21 @@ function transformToListing(intent: SearchIntent): Listing {
     description: intent.description,
     price: intent.price ?? undefined,
     currency: intent.currency,
-  }
+  };
 }
 
-export function SearchListings() {
-  const { identity, setActiveView, setSelectedConversation, addConversation } =
-    useSphereStore()
-
-  const [searchQuery, setSearchQuery] = useState("")
-  const [isSearching, setIsSearching] = useState(false)
-  const [results, setResults] = useState<Listing[]>([])
-  const [hasSearched, setHasSearched] = useState(false)
+export default function SearchListings() {
+  const { identity, addConversation, setActiveView, setSelectedConversation } = useSphereStore();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [results, setResults] = useState<Listing[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return
+    if (!searchQuery.trim()) return;
 
-    setIsSearching(true)
-    setHasSearched(true)
+    setIsSearching(true);
+    setHasSearched(true);
 
     try {
       const response = await fetch(`${API_BASE}/search`, {
@@ -71,27 +64,24 @@ export function SearchListings() {
           filters: { intent_type: "sell" },
           limit: 20,
         }),
-      })
+      });
 
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.status}`)
-      }
+      if (!response.ok) throw new Error(`Search failed: ${response.status}`);
 
-      const data = await response.json()
-      const listings = (data.intents as SearchIntent[]).map(transformToListing)
-      setResults(listings)
+      const data = await response.json();
+      const listings = (data.intents as SearchIntent[]).map(transformToListing);
+      setResults(listings);
     } catch (error) {
-      console.error("Search error:", error)
-      setResults([])
+      console.error("Search error:", error);
+      setResults([]);
     } finally {
-      setIsSearching(false)
+      setIsSearching(false);
     }
-  }
+  };
 
   const handleContactSeller = (listing: Listing) => {
-    if (!identity) return
+    if (!identity) return;
 
-    // Create or get conversation
     addConversation({
       address: listing.sellerAddress,
       nametag: listing.sellerNametag,
@@ -99,78 +89,59 @@ export function SearchListings() {
       listingHash: listing.hash,
       listingPrice: listing.price,
       escrowStatus: "none",
-    })
+    });
 
-    setSelectedConversation(listing.sellerAddress)
-    setActiveView("messages")
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSearch()
-    }
-  }
+    setSelectedConversation(listing.sellerAddress);
+  };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 md:py-20">
-      {/* Header */}
-      <div className="mb-12 text-center">
-        <h1 className="text-5xl tracking-tight text-foreground md:text-7xl text-balance" style={{ fontFamily: 'Blippo, sans-serif' }}>
-          Discover Listings
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground text-balance">
-          Search the decentralized marketplace using natural language
-        </p>
+    <div className="p-6">
+      {/* Search Header */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-white mb-2">Discover Listings</h2>
+        <p className="text-white/50">Search the marketplace using natural language</p>
       </div>
 
       {/* Search Input */}
-      <div className="mb-12">
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Looking for a used MacBook with at least 16GB RAM..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isSearching}
-              className="h-14 pl-12 pr-4 text-base bg-input border-border placeholder:text-muted-foreground/60"
-            />
-          </div>
-          <Button
-            onClick={handleSearch}
-            disabled={!searchQuery.trim() || isSearching}
-            className="h-14 px-8"
-          >
-            {isSearching ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              "Search"
-            )}
-          </Button>
+      <div className="flex gap-3 mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+          <input
+            type="text"
+            placeholder="Looking for a MacBook with 16GB RAM..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            disabled={isSearching}
+            className="w-full h-12 pl-12 pr-4 bg-white/[0.06] border border-white/[0.06] rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:border-indigo-500/50 transition-colors"
+          />
         </div>
+        <button
+          onClick={handleSearch}
+          disabled={!searchQuery.trim() || isSearching}
+          className="h-12 px-6 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : "Search"}
+        </button>
       </div>
 
       {/* Results */}
       {isSearching ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="mt-4 text-muted-foreground">Searching the network...</p>
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-white/40" />
+          <p className="mt-4 text-white/40">Searching the network...</p>
         </div>
       ) : hasSearched && results.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
-            <Search className="h-8 w-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+            <Search className="w-8 h-8 text-white/30" />
           </div>
-          <h3 className="text-lg font-medium text-foreground">No results found</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Try adjusting your search terms
-          </p>
+          <h3 className="text-lg font-medium text-white">No results found</h3>
+          <p className="mt-2 text-white/40">Try adjusting your search terms</p>
         </div>
       ) : results.length > 0 ? (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+        <div>
+          <p className="text-sm text-white/40 mb-4">
             {results.length} result{results.length !== 1 ? "s" : ""} found
           </p>
           <div className="grid gap-4">
@@ -185,110 +156,96 @@ export function SearchListings() {
           </div>
         </div>
       ) : (
-        /* Empty State */
-        <div className="grid gap-6 md:grid-cols-3 pt-8">
+        /* Empty state with hints */
+        <div className="grid md:grid-cols-3 gap-4">
           {[
-            {
-              icon: Search,
-              title: "Semantic Search",
-              description:
-                "Describe what you want in natural language. AI understands your intent.",
-            },
-            {
-              icon: Shield,
-              title: "Secure Messaging",
-              description:
-                "Contact sellers directly via end-to-end encrypted Sphere messages.",
-            },
-            {
-              icon: Wallet,
-              title: "Instant Payments",
-              description:
-                "Pay directly from the chat with optional escrow protection.",
-            },
-          ].map((feature) => (
-            <div
-              key={feature.title}
-              className="rounded-xl border border-border bg-card p-6"
+            { query: "MacBook Pro under $2000", desc: "Electronics" },
+            { query: "Standing desk near me", desc: "Furniture" },
+            { query: "Smart home installation", desc: "Services" },
+          ].map((hint) => (
+            <button
+              key={hint.query}
+              onClick={() => {
+                setSearchQuery(hint.query);
+                handleSearch();
+              }}
+              className="card-dark p-4 text-left hover:bg-white/[0.04] transition-colors"
             >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                <feature.icon className="h-5 w-5 text-foreground" />
-              </div>
-              <h3 className="text-base font-medium text-foreground">
-                {feature.title}
-              </h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                {feature.description}
-              </p>
-            </div>
+              <p className="text-white/60 text-sm">{hint.query}</p>
+              <p className="text-white/30 text-xs mt-1">{hint.desc}</p>
+            </button>
           ))}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 interface ListingCardProps {
-  listing: Listing
-  onContact: () => void
-  isConnected: boolean
+  listing: Listing;
+  onContact: () => void;
+  isConnected: boolean;
 }
 
 function ListingCard({ listing, onContact, isConnected }: ListingCardProps) {
-  const timeSince = getTimeSince(listing.timestamp)
+  const timeSince = getTimeSince(listing.timestamp);
 
   return (
-    <div className="group rounded-xl border border-border bg-card p-6 transition-colors hover:border-muted-foreground/30">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+    <div className="card-dark p-5 card-hover">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4 flex-1 min-w-0">
-          <Identicon pubKey={listing.sellerAddress} size={48} className="shrink-0" />
+          <Identicon pubKey={listing.sellerAddress} size={44} className="shrink-0 rounded-lg" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-white">
                 {listing.sellerNametag || formatAddress(listing.sellerAddress, 6, 4)}
               </span>
-              <span className="text-xs text-muted-foreground">
-                {timeSince}
+              <span className="text-xs text-white/30">{timeSince}</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/10 text-green-500 border border-green-500/20">
+                <ArrowUpRight className="w-3 h-3" />
+                SELLING
               </span>
             </div>
             {listing.description && (
-              <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">
-                {listing.description}
-              </p>
+              <p className="mt-2 text-sm text-white/60 line-clamp-2">{listing.description}</p>
             )}
-            <div className="mt-3 flex items-center gap-3 flex-wrap">
+            <div className="mt-3 flex items-center gap-3">
               {listing.price && (
-                <span className="text-sm font-semibold text-foreground">
+                <span className="text-sm font-semibold text-white">
                   {formatAmount(listing.price, listing.currency)}
                 </span>
               )}
-              <code className="rounded bg-secondary px-2 py-0.5 font-mono text-xs text-muted-foreground">
+              <code className="px-2 py-0.5 rounded bg-white/5 font-mono text-xs text-white/30">
                 {truncateHash(listing.hash, 6)}
               </code>
             </div>
           </div>
         </div>
-        <Button 
-          onClick={onContact} 
-          size="sm" 
-          className="gap-2 shrink-0 w-full sm:w-auto"
+        <button
+          onClick={onContact}
           disabled={!isConnected}
+          className={cn(
+            "shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
+            isConnected
+              ? "bg-indigo-500 hover:bg-indigo-600 text-white"
+              : "bg-white/10 text-white/40 cursor-not-allowed"
+          )}
         >
-          <MessageCircle className="h-4 w-4" />
-          <span>Contact Seller</span>
-        </Button>
+          <MessageCircle className="w-4 h-4" />
+          Contact
+        </button>
       </div>
     </div>
-  )
+  );
 }
 
 function getTimeSince(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000)
-  if (seconds < 60) return "just now"
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
