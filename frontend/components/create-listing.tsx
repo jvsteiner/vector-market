@@ -1,262 +1,190 @@
-"use client"
+"use client";
 
-import React from "react"
-import { useState } from "react"
-import { useSphereStore, truncateHash } from "@/lib/sphere-store"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Loader2, Check, AlertCircle, Copy, ArrowRight, DollarSign } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState } from "react";
+import { useSphereStore, truncateHash } from "@/lib/sphere-store";
+import { Check, Copy, Loader2, Tag, DollarSign } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-type PostingStep = "idle" | "processing" | "posting" | "success" | "error"
+type PostingStep = "idle" | "processing" | "posting" | "success" | "error";
 
-interface StepIndicator {
-  step: PostingStep
-  message: string
-  icon?: React.ReactNode
-}
-
-export function CreateListing() {
-  const { identity, addListing, setToastMessage } = useSphereStore()
-  const [intentText, setIntentText] = useState("")
-  const [price, setPrice] = useState("")
-  const [postingStep, setPostingStep] = useState<PostingStep>("idle")
-  const [errorMessage, setErrorMessage] = useState("")
-  const [createdHash, setCreatedHash] = useState("")
-  const [copied, setCopied] = useState(false)
-
-  const stepIndicators: Record<PostingStep, StepIndicator> = {
-    idle: { step: "idle", message: "" },
-    processing: {
-      step: "processing",
-      message: "Processing listing...",
-      icon: <Loader2 className="h-4 w-4 animate-spin" />,
-    },
-    posting: {
-      step: "posting",
-      message: "Broadcasting to network...",
-      icon: <Loader2 className="h-4 w-4 animate-spin" />,
-    },
-    success: {
-      step: "success",
-      message: "Your listing is now live!",
-      icon: <Check className="h-4 w-4 text-success" />,
-    },
-    error: {
-      step: "error",
-      message: errorMessage,
-      icon: <AlertCircle className="h-4 w-4 text-destructive" />,
-    },
-  }
+export default function CreateListing() {
+  const { identity, addListing, setToastMessage } = useSphereStore();
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [postingStep, setPostingStep] = useState<PostingStep>("idle");
+  const [listingHash, setListingHash] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handlePost = async () => {
-    if (!intentText.trim()) return
+    if (!description.trim() || !identity) return;
 
-    if (!identity) {
-      setErrorMessage("Please connect your Sphere wallet first")
-      setPostingStep("error")
-      return
+    setPostingStep("processing");
+    setErrorMessage(null);
+
+    try {
+      // Simulate processing
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      setPostingStep("posting");
+
+      // Generate hash and add to store
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const hash = `0x${Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("")}`;
+
+      addListing({
+        id: hash,
+        hash,
+        sellerAddress: identity.address,
+        sellerNametag: identity.nametag,
+        timestamp: Date.now(),
+        description: description.trim(),
+        price: price ? parseFloat(price) : undefined,
+        currency: "UCT",
+      });
+
+      setListingHash(hash);
+      setPostingStep("success");
+      setToastMessage({ type: "success", message: "Listing posted successfully!" });
+    } catch (error) {
+      setPostingStep("error");
+      setErrorMessage((error as Error).message || "Failed to post listing");
     }
+  };
 
-    setPostingStep("processing")
-    setErrorMessage("")
-
-    // Simulate processing
-    await new Promise((resolve) => setTimeout(resolve, 1200))
-
-    setPostingStep("posting")
-
-    // Simulate posting to network
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Generate a mock hash
-    const hash = "0x" + Array.from({ length: 64 }, () =>
-      Math.floor(Math.random() * 16).toString(16)
-    ).join("")
-
-    // Add to local store
-    addListing({
-      id: Date.now().toString(),
-      hash,
-      sellerAddress: identity.address,
-      sellerNametag: identity.nametag,
-      timestamp: Date.now(),
-      description: intentText,
-      price: price ? parseFloat(price) : undefined,
-      currency: "ALPHA",
-    })
-
-    setCreatedHash(hash)
-    setPostingStep("success")
-    setToastMessage({ type: "success", message: "Listing created successfully!" })
-  }
-
-  const handleCopyHash = async () => {
-    await navigator.clipboard.writeText(createdHash)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const handleCopyHash = () => {
+    if (listingHash) {
+      navigator.clipboard.writeText(listingHash);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleReset = () => {
-    setIntentText("")
-    setPrice("")
-    setPostingStep("idle")
-    setCreatedHash("")
-    setErrorMessage("")
-  }
+    setDescription("");
+    setPrice("");
+    setPostingStep("idle");
+    setListingHash(null);
+    setErrorMessage(null);
+  };
 
-  const currentIndicator = stepIndicators[postingStep]
-  const isProcessing = postingStep === "processing" || postingStep === "posting"
-
-  if (!identity) {
+  if (postingStep === "success" && listingHash) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12 md:py-20">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
-            <DollarSign className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h2 className="text-xl font-semibold text-foreground">
-            Connect to Sell
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
-            Connect your Sphere wallet to create listings and start selling
-          </p>
+      <div className="flex flex-col items-center justify-center py-20 px-6">
+        <div className="w-16 h-16 rounded-2xl bg-green-500/10 flex items-center justify-center mb-6">
+          <Check className="w-8 h-8 text-green-500" />
         </div>
+        <h2 className="text-2xl font-semibold text-white mb-2">Listing Posted!</h2>
+        <p className="text-white/50 text-center mb-6">Your listing is now live on the marketplace</p>
+
+        <div className="card-dark p-4 flex items-center gap-3 mb-8">
+          <code className="text-sm font-mono text-white/60">{truncateHash(listingHash, 12)}</code>
+          <button
+            onClick={handleCopyHash}
+            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-green-500" />
+            ) : (
+              <Copy className="w-4 h-4 text-white/40" />
+            )}
+          </button>
+        </div>
+
+        <button onClick={handleReset} className="btn-secondary">
+          Create Another Listing
+        </button>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 md:py-20">
+    <div className="p-6 max-w-2xl mx-auto">
       {/* Header */}
-      <div className="mb-12 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-          Create Listing
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground text-balance">
-          Describe what you&apos;re selling. Be specific to help buyers find you.
-        </p>
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-white mb-2">Create Listing</h2>
+        <p className="text-white/50">Post what you're selling to the marketplace</p>
       </div>
 
-      {postingStep === "success" ? (
-        /* Success State */
-        <div className="space-y-8">
-          <div className="rounded-xl border border-success/30 bg-success/5 p-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-success/20">
-              <Check className="h-6 w-6 text-success" />
-            </div>
-            <h2 className="text-xl font-semibold text-foreground">
-              Listing Created
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Your listing is now discoverable by buyers on the network
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <Label className="text-sm text-muted-foreground">Listing Hash</Label>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 rounded-lg bg-secondary px-4 py-3 font-mono text-sm text-foreground truncate">
-                {truncateHash(createdHash, 16)}
-              </code>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyHash}
-                className="shrink-0 bg-transparent"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-success" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          <Button onClick={handleReset} className="w-full gap-2">
-            Create Another Listing
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+      {/* Form */}
+      <div className="space-y-6">
+        {/* Description */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-white/70 mb-2">
+            <Tag className="w-4 h-4" />
+            What are you selling?
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe your item in detail. Include condition, features, and why someone should buy it..."
+            disabled={postingStep !== "idle"}
+            rows={4}
+            className="w-full px-4 py-3 bg-white/[0.06] border border-white/[0.06] rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:border-indigo-500/50 transition-colors resize-none"
+          />
         </div>
-      ) : (
-        /* Form State */
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <Label htmlFor="intent" className="text-base font-medium text-foreground">
-              What are you selling?
-            </Label>
-            <Textarea
-              id="intent"
-              placeholder="2022 MacBook Air M2, 16GB RAM, 512GB SSD. Excellent condition with original box. Minor scratch on corner. Bay Area local pickup preferred."
-              value={intentText}
-              onChange={(e) => setIntentText(e.target.value)}
-              disabled={isProcessing}
-              className={cn(
-                "min-h-[160px] resize-none bg-input border-border text-base leading-relaxed placeholder:text-muted-foreground/60",
-                "focus:ring-2 focus:ring-primary/20"
-              )}
+
+        {/* Price */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-white/70 mb-2">
+            <DollarSign className="w-4 h-4" />
+            Price (optional)
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00"
+              disabled={postingStep !== "idle"}
+              className="w-full h-12 px-4 pr-16 bg-white/[0.06] border border-white/[0.06] rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:border-indigo-500/50 transition-colors"
             />
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 text-sm font-medium">
+              UCT
+            </span>
           </div>
-
-          <div className="space-y-4">
-            <Label htmlFor="price" className="text-base font-medium text-foreground">
-              Price (optional)
-            </Label>
-            <div className="relative">
-              <Input
-                id="price"
-                type="number"
-                placeholder="0.00"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                disabled={isProcessing}
-                className="pr-16 bg-input border-border"
-                step="0.01"
-                min="0"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                ALPHA
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Leave blank if you prefer to negotiate
-            </p>
-          </div>
-
-          {/* Status Indicator */}
-          {postingStep !== "idle" && (
-            <div
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-4 py-3",
-                postingStep === "error"
-                  ? "bg-destructive/10 text-destructive"
-                  : "bg-secondary text-foreground"
-              )}
-            >
-              {currentIndicator.icon}
-              <span className="text-sm">{currentIndicator.message}</span>
-            </div>
-          )}
-
-          <Button
-            onClick={handlePost}
-            disabled={!intentText.trim() || isProcessing}
-            className="w-full h-12 text-base"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Post Listing"
-            )}
-          </Button>
         </div>
-      )}
+
+        {/* Error */}
+        {errorMessage && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {errorMessage}
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={handlePost}
+          disabled={!description.trim() || !identity || postingStep !== "idle"}
+          className={cn(
+            "w-full py-3.5 rounded-full font-medium text-sm transition-all",
+            description.trim() && identity && postingStep === "idle"
+              ? "bg-white hover:bg-gray-100 text-black"
+              : "bg-white/10 text-white/40 cursor-not-allowed"
+          )}
+        >
+          {postingStep === "processing" ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Processing...
+            </span>
+          ) : postingStep === "posting" ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Posting to marketplace...
+            </span>
+          ) : (
+            "Post Listing"
+          )}
+        </button>
+
+        {!identity && (
+          <p className="text-center text-white/30 text-sm">
+            Connect your wallet to post listings
+          </p>
+        )}
+      </div>
     </div>
-  )
+  );
 }
