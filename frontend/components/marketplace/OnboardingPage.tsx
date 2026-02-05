@@ -110,8 +110,10 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
       // Draw connections
       ctx.strokeStyle = "rgba(99, 102, 241, 0.1)";
       ctx.lineWidth = 1;
-      particles.forEach((p1, i) => {
-        particles.slice(i + 1).forEach((p2) => {
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const p1 = particles[i];
+          const p2 = particles[j];
           const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
           if (dist < 150) {
             ctx.beginPath();
@@ -119,8 +121,8 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
             ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
           }
-        });
-      });
+        }
+      }
 
       animationId = requestAnimationFrame(animate);
     };
@@ -155,13 +157,16 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
         if (storedNametag?.name) {
           nametag = `@${storedNametag.name}`;
         }
-      } catch {}
+      } catch (error) {
+        console.warn("Failed to fetch nametag:", error);
+      }
 
       setIdentity({
         address: identity.publicKey,
         nametag,
         balance: alphaBalance ? parseFloat(alphaBalance.amount) : 0,
       });
+      setIsConnecting(false);
       setConnectionStatus("connected");
       onComplete();
     } catch (error) {
