@@ -1,6 +1,6 @@
 import * as fs from 'fs';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { bytesToHex, randomBytes } from '@noble/hashes/utils';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { bytesToHex, randomBytes } from '@noble/hashes/utils.js';
 import { config } from './config.js';
 
 interface WalletData {
