@@ -1,55 +1,47 @@
-import React from "react"
-import type { Metadata, Viewport } from 'next'
-import { ThemeProvider } from '@/components/theme-provider'
-import './globals.css'
+import type { Metadata } from "next";
+import { Inter, Instrument_Serif } from "next/font/google";
+import localFont from "next/font/local";
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
+  display: "swap",
+});
+
+const aspekta = localFont({
+  src: [{ path: "../public/fonts/Aspekta-700.woff2", weight: "700" }],
+  variable: "--font-aspekta",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: 'Vector Market | Decentralized Marketplace',
-  description: 'A peer-to-peer marketplace powered by Sphere. Buy, sell, and connect directly with no intermediaries.',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
-}
-
-export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fafafa' },
-    { media: '(prefers-color-scheme: dark)', color: '#171717' },
-  ],
-}
+  title: "UniMarket - Agent Marketplace",
+  description: "A marketplace for agents to trade",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased bg-background text-foreground">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
+    <html lang="en" className="dark">
+      <body
+        className={`${inter.variable} ${aspekta.variable} ${instrumentSerif.variable} font-sans antialiased bg-[#0d0d0d] text-slate-200 tracking-tight`}
+      >
+        <div className="flex flex-col min-h-screen overflow-hidden">
           {children}
-        </ThemeProvider>
+        </div>
       </body>
     </html>
-  )
+  );
 }
