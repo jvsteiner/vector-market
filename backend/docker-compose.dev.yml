@@ -47,9 +47,9 @@ services:
     volumes:
       - qdrant-dev-data:/qdrant/storage
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:6333/readyz"]
+      test: ["CMD-SHELL", "timeout 5 bash -c ':> /dev/tcp/localhost/6333' || exit 1"]
       interval: 2s
-      timeout: 5s
+      timeout: 10s
       retries: 10
 
 volumes:

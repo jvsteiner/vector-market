@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { sha256 } from '@noble/hashes/sha2';
-import { hexToBytes } from '@noble/hashes/utils';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { hexToBytes } from '@noble/hashes/utils.js';
 import { query } from '../db/client.js';
 
 const MAX_TIMESTAMP_DRIFT_MS = 60_000; // 1 minute

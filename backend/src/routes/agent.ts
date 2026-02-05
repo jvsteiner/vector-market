@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { hexToBytes } from '@noble/hashes/utils';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { hexToBytes } from '@noble/hashes/utils.js';
 import { query } from '../db/client.js';
 import { verifySignature, AuthenticatedRequest } from '../auth/verify-signature.js';
 
