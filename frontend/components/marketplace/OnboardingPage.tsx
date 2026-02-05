@@ -41,11 +41,9 @@ const STEPS = [
 export default function OnboardingPage({ onComplete, onBack }: OnboardingPageProps) {
   const [phase, setPhase] = useState(0);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isWaitingForUnlock, setIsWaitingForUnlock] = useState(false);
   const [extensionStatus, setExtensionStatus] = useState<"checking" | "not-installed" | "ready">("checking");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { setConnectionStatus, setIdentity } = useSphereStore();
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Check for Sphere extension
@@ -137,7 +135,7 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
     };
   }, []);
 
-  const handleConnect = async (retryCount = 0) => {
+  const handleConnect = async () => {
     if (extensionStatus !== "ready") {
       window.open("https://github.com/nicklatch/sphere-extension/releases", "_blank");
       return;
@@ -175,33 +173,17 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
       onComplete();
     } catch (error) {
       const errorStr = String(error);
-      const isLocked = errorStr.toLowerCase().includes("locked");
-
-      // If wallet is locked and we haven't retried too many times, wait and retry
-      // This handles the race condition where the extension opens the unlock popup
-      // but also immediately throws an error
-      if (isLocked && retryCount < 5) {
-        setIsWaitingForUnlock(true);
-        console.log(`Wallet locked, retrying in ${(retryCount + 1) * 2} seconds... (attempt ${retryCount + 1}/5)`);
-        retryTimeoutRef.current = setTimeout(() => {
-          handleConnect(retryCount + 1);
-        }, (retryCount + 1) * 2000); // 2s, 4s, 6s, 8s, 10s
-        return;
-      }
-
-      setIsWaitingForUnlock(false);
-
       console.error("Connection failed:", error);
       setConnectionStatus("not-connected");
       setIsConnecting(false);
 
       // Show user-friendly error message
-      if (isLocked) {
-        setErrorMessage("Wallet unlock timed out. Please unlock your wallet and try again.");
+      if (errorStr.toLowerCase().includes("locked")) {
+        setErrorMessage("Please unlock your wallet first, then click Connect again.");
       } else if (errorStr.toLowerCase().includes("rejected") || errorStr.toLowerCase().includes("denied")) {
-        setErrorMessage("Connection was rejected. Please approve the connection request in the extension.");
+        setErrorMessage("Connection was rejected. Please approve the connection request.");
       } else {
-        setErrorMessage("Failed to connect. Please make sure your wallet is unlocked and try again.");
+        setErrorMessage("Failed to connect. Please try again.");
       }
     }
   };
@@ -329,7 +311,7 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
             {isConnecting ? (
               <span className="flex items-center justify-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {isWaitingForUnlock ? "Waiting for wallet unlock..." : "Connecting..."}
+                Connecting...
               </span>
             ) : extensionStatus === "checking" ? (
               "Checking for Sphere..."
@@ -357,20 +339,11 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
 
           {/* Skip option */}
           <button
-            onClick={() => {
-              // Cancel any pending retry
-              if (retryTimeoutRef.current) {
-                clearTimeout(retryTimeoutRef.current);
-                retryTimeoutRef.current = null;
-              }
-              setIsConnecting(false);
-              setIsWaitingForUnlock(false);
-              setConnectionStatus("not-connected");
-              onComplete();
-            }}
-            className="w-full mt-3 py-3 text-white/50 hover:text-white text-sm transition-colors"
+            onClick={onComplete}
+            disabled={isConnecting}
+            className="w-full mt-3 py-3 text-white/50 hover:text-white text-sm transition-colors disabled:opacity-50"
           >
-            {isConnecting ? "Cancel and browse without wallet" : "Browse without connecting"}
+            Browse without connecting
           </button>
         </div>
       </div>
