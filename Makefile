@@ -1,10 +1,14 @@
 .PHONY: install dev build lint clean deploy serve kill-ports stop preview generate-rewrites help
 .PHONY: ext-install ext-dev ext-build ext-package ext-publish ext-version ext-lint ext-clean
+.PHONY: backend-dev backend-down backend-reset backend-logs backend-shell db-shell
+.PHONY: skill-install skill-test skill-init install-all dev-all
 
 # Absolute paths
 ROOT_DIR := $(shell pwd)
 FRONTEND_DIR := $(ROOT_DIR)/frontend
 EXTENSION_DIR := $(ROOT_DIR)/sphere-extension
+BACKEND_DIR := $(ROOT_DIR)/backend
+SKILL_DIR := $(ROOT_DIR)/vector-skill
 OUT_DIR := $(FRONTEND_DIR)/out
 SCRIPTS_DIR := $(FRONTEND_DIR)/scripts
 
@@ -30,6 +34,23 @@ help:
 	@echo "  make deploy            Build and deploy to Firebase Hosting"
 	@echo "  make deploy-only       Deploy to Firebase without rebuilding"
 	@echo "  make firebase-init     Initialize Firebase project (run once)"
+	@echo ""
+	@echo "Backend Development:"
+	@echo "  make backend-dev       Start Docker Compose (backend + DB + Qdrant)"
+	@echo "  make backend-down      Stop Docker Compose services"
+	@echo "  make backend-reset     Reset backend (delete all data)"
+	@echo "  make backend-logs      View backend logs"
+	@echo "  make backend-shell     Shell into backend container"
+	@echo "  make db-shell          PostgreSQL shell"
+	@echo ""
+	@echo "Skill CLI:"
+	@echo "  make skill-install     Install skill dependencies"
+	@echo "  make skill-init        Initialize wallet"
+	@echo "  make skill-test        Test skill setup"
+	@echo ""
+	@echo "Full Stack:"
+	@echo "  make install-all       Install all dependencies"
+	@echo "  make dev-all           Start full dev stack (backend + frontend)"
 	@echo ""
 	@echo "Browser Extension:"
 	@echo "  make ext-install       Install extension dependencies"
@@ -208,3 +229,62 @@ ext-clean:
 	@echo "Cleaning extension build..."
 	rm -rf $(EXTENSION_DIR)/dist
 	@echo "Extension cleaned"
+
+# =============================================================================
+# Backend Development
+# =============================================================================
+
+backend-dev:
+	@echo "Starting backend development environment..."
+	@echo "Requires OPENAI_API_KEY environment variable"
+	cd $(BACKEND_DIR) && docker compose -f docker-compose.dev.yml up --build
+
+backend-down:
+	cd $(BACKEND_DIR) && docker compose -f docker-compose.dev.yml down
+
+backend-reset:
+	@echo "Resetting backend (deleting all data)..."
+	cd $(BACKEND_DIR) && docker compose -f docker-compose.dev.yml down -v
+	$(MAKE) backend-dev
+
+backend-logs:
+	cd $(BACKEND_DIR) && docker compose -f docker-compose.dev.yml logs -f
+
+backend-shell:
+	cd $(BACKEND_DIR) && docker compose -f docker-compose.dev.yml exec backend sh
+
+db-shell:
+	cd $(BACKEND_DIR) && docker compose -f docker-compose.dev.yml exec db psql -U vectorsphere
+
+# =============================================================================
+# Skill Development
+# =============================================================================
+
+skill-install:
+	cd $(SKILL_DIR) && npm install
+
+skill-test:
+	@echo "Testing skill setup..."
+	cd $(SKILL_DIR) && npx tsx scripts/wallet.ts show || echo "No wallet yet - run: make skill-init"
+
+skill-init:
+	cd $(SKILL_DIR) && npx tsx scripts/wallet.ts init
+
+# =============================================================================
+# Full Stack
+# =============================================================================
+
+dev-all:
+	@echo "Starting full development stack..."
+	@echo "1. Backend + DB + Qdrant on ports 3001, 5432, 6333"
+	@echo "2. Frontend on port 3000"
+	@echo ""
+	$(MAKE) backend-dev &
+	sleep 5
+	$(MAKE) dev
+
+install-all:
+	cd $(FRONTEND_DIR) && npm install
+	cd $(BACKEND_DIR) && npm install
+	cd $(SKILL_DIR) && npm install
+	cd $(EXTENSION_DIR) && npm install
