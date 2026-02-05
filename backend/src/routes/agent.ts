@@ -56,7 +56,7 @@ agentRouter.post('/register', async (req: Request, res: Response) => {
 agentRouter.get('/me', verifySignature, async (req: AuthenticatedRequest, res: Response) => {
   const result = await query(
     'SELECT id, name, public_key, nostr_pubkey, registered_at FROM agents WHERE id = $1',
-    [req.agentId]
+    [req.agentId!]
   );
   res.json({ agent: result.rows[0] });
 });
