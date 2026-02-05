@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Wallet, Shield, Zap, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Wallet, Shield, Zap, Check, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { waitForSphere, getSphere, ALPHA_COIN_ID } from "@/lib/sphere-api";
 import { useSphereStore } from "@/lib/sphere-store";
@@ -42,6 +42,7 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
   const [phase, setPhase] = useState(0);
   const [isConnecting, setIsConnecting] = useState(false);
   const [extensionStatus, setExtensionStatus] = useState<"checking" | "not-installed" | "ready">("checking");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { setConnectionStatus, setIdentity } = useSphereStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -141,6 +142,7 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
     }
 
     setIsConnecting(true);
+    setErrorMessage(null);
     setConnectionStatus("connecting");
 
     try {
@@ -173,6 +175,16 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
       console.error("Connection failed:", error);
       setConnectionStatus("not-connected");
       setIsConnecting(false);
+
+      // Show user-friendly error message
+      const errorStr = String(error);
+      if (errorStr.toLowerCase().includes("locked")) {
+        setErrorMessage("Please unlock your wallet in the Sphere extension popup first, then try again.");
+      } else if (errorStr.toLowerCase().includes("rejected") || errorStr.toLowerCase().includes("denied")) {
+        setErrorMessage("Connection was rejected. Please approve the connection request in the extension.");
+      } else {
+        setErrorMessage("Failed to connect. Please make sure your wallet is unlocked and try again.");
+      }
     }
   };
 
@@ -310,11 +322,19 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
             )}
           </button>
 
-          {extensionStatus === "ready" && (
+          {extensionStatus === "ready" && !errorMessage && (
             <p className="text-white/30 text-xs mt-3">
               <Check className="w-3 h-3 inline mr-1 text-green-500" />
               Sphere extension detected
             </p>
+          )}
+
+          {/* Error message */}
+          {errorMessage && (
+            <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-amber-200 text-sm">{errorMessage}</p>
+            </div>
           )}
 
           {/* Skip option */}
