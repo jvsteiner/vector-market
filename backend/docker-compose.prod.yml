@@ -1,6 +1,8 @@
 # Production stack (Caddy handled by shared infra)
 # Run: docker compose -f docker-compose.prod.yml up -d
 
+name: vectorsphere
+
 services:
   api:
     container_name: vectorsphere-api
