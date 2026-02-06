@@ -1,7 +1,8 @@
 .PHONY: install dev build lint clean deploy serve kill-ports stop preview generate-rewrites help
 .PHONY: ext-install ext-dev ext-build ext-package ext-publish ext-version ext-lint ext-clean
-.PHONY: backend-dev backend-down backend-reset backend-seed backend-logs backend-shell db-shell
+.PHONY: backend-dev backend-down backend-reset backend-seed backend-logs backend-shell db-shell deploy-backend
 .PHONY: skill-install skill-test skill-init install-all dev-all
+.PHONY: deploy-all prod-status prod-logs prod-restart prod-caddy-reload
 
 # Absolute paths
 ROOT_DIR := $(shell pwd)
@@ -11,6 +12,11 @@ BACKEND_DIR := $(ROOT_DIR)/backend
 SKILL_DIR := $(ROOT_DIR)/vector-skill
 OUT_DIR := $(FRONTEND_DIR)/out
 SCRIPTS_DIR := $(FRONTEND_DIR)/scripts
+
+# Production
+PROD_HOST := claw
+PROD_DIR := ~/vector-market/backend
+PROD_API := https://vector.jamiesteiner.com
 
 # Firebase settings
 FIREBASE_PROJECT := $(shell grep -o '"projects"[^}]*' $(FRONTEND_DIR)/.firebaserc 2>/dev/null | grep -o '"default"[^,}]*' | cut -d'"' -f4)
@@ -33,6 +39,7 @@ help:
 	@echo "  make generate-rewrites Regenerate Firebase rewrites from out/"
 	@echo "  make deploy            Build and deploy to Firebase Hosting"
 	@echo "  make deploy-only       Deploy to Firebase without rebuilding"
+	@echo "  make deploy-backend    Deploy backend to EC2"
 	@echo "  make firebase-init     Initialize Firebase project (run once)"
 	@echo ""
 	@echo "Backend Development:"
@@ -52,6 +59,13 @@ help:
 	@echo "Full Stack:"
 	@echo "  make install-all       Install all dependencies"
 	@echo "  make dev-all           Start full dev stack (backend + frontend)"
+	@echo "  make deploy-all        Deploy frontend + backend"
+	@echo ""
+	@echo "Production:"
+	@echo "  make prod-status       Show running containers on EC2"
+	@echo "  make prod-logs         Follow backend logs on EC2"
+	@echo "  make prod-restart      Restart backend without rebuilding"
+	@echo "  make prod-caddy-reload Reload shared Caddy config"
 	@echo ""
 	@echo "Browser Extension:"
 	@echo "  make ext-install       Install extension dependencies"
@@ -140,6 +154,23 @@ deploy: build
 	@echo "Deploying to Firebase Hosting..."
 	cd $(FRONTEND_DIR) && npx firebase deploy --only hosting
 	@echo "Deployed"
+
+# Deploy backend to EC2
+deploy-backend:
+	@echo "Deploying backend to EC2..."
+	ssh $(PROD_HOST) 'cd $(PROD_DIR) && git pull origin main && docker compose -f docker-compose.prod.yml up -d --build'
+	@echo "Waiting for services..."
+	@sleep 5
+	@echo "Health check..."
+	@curl -sf -X POST $(PROD_API)/api/search -H 'Content-Type: application/json' -d '{"query":"test"}' > /dev/null && echo "  API OK" || echo "  Warning: health check failed, services may still be starting"
+	@echo "Backend deployed to $(PROD_API)"
+
+# Deploy frontend + backend
+deploy-all: deploy deploy-backend
+	@echo ""
+	@echo "Full deployment complete:"
+	@echo "  Frontend: https://vector.jamiesteiner.com (Firebase)"
+	@echo "  Backend:  $(PROD_API)"
 
 # Deploy without rebuilding
 deploy-only:
@@ -299,3 +330,23 @@ install-all:
 	cd $(BACKEND_DIR) && npm install
 	cd $(SKILL_DIR) && npm install
 	cd $(EXTENSION_DIR) && npm install
+
+# =============================================================================
+# Production Management
+# =============================================================================
+
+prod-status:
+	@ssh $(PROD_HOST) 'docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "vectorsphere|shared-caddy|NAMES"'
+
+prod-logs:
+	@ssh $(PROD_HOST) 'docker logs -f vectorsphere-api'
+
+prod-restart:
+	@echo "Restarting vector-sphere backend..."
+	ssh $(PROD_HOST) 'cd $(PROD_DIR) && docker compose -f docker-compose.prod.yml restart api'
+	@echo "Restarted"
+
+prod-caddy-reload:
+	@echo "Reloading shared Caddy config..."
+	ssh $(PROD_HOST) 'docker exec shared-caddy caddy reload --config /etc/caddy/Caddyfile'
+	@echo "Caddy reloaded"
