@@ -16,7 +16,7 @@ SCRIPTS_DIR := $(FRONTEND_DIR)/scripts
 # Production
 PROD_HOST := claw
 PROD_DIR := ~/vector-market/backend
-PROD_API := https://vector.jamiesteiner.com
+PROD_API := https://market-api.unicity.network
 
 # Firebase settings
 FIREBASE_PROJECT := $(shell grep -o '"projects"[^}]*' $(FRONTEND_DIR)/.firebaserc 2>/dev/null | grep -o '"default"[^,}]*' | cut -d'"' -f4)
@@ -169,7 +169,7 @@ deploy-backend:
 deploy-all: deploy deploy-backend
 	@echo ""
 	@echo "Full deployment complete:"
-	@echo "  Frontend: https://vector.jamiesteiner.com (Firebase)"
+	@echo "  Frontend: https://market.unicity.network (Firebase)"
 	@echo "  Backend:  $(PROD_API)"
 
 # Deploy without rebuilding
