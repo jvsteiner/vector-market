@@ -1,8 +1,9 @@
-# Production stack
+# Production stack (Caddy handled by shared infra)
 # Run: docker compose -f docker-compose.prod.yml up -d
 
 services:
   api:
+    container_name: vectorsphere-api
     build:
       context: .
       dockerfile: Dockerfile
@@ -18,8 +19,12 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_healthy
+    networks:
+      - default
+      - web
 
   db:
+    container_name: vectorsphere-db
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -36,6 +41,7 @@ services:
       retries: 10
 
   qdrant:
+    container_name: vectorsphere-qdrant
     image: qdrant/qdrant:v1.13.2
     restart: unless-stopped
     volumes:
@@ -46,21 +52,10 @@ services:
       timeout: 10s
       retries: 10
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - api
-
 volumes:
   postgres-data:
   qdrant-data:
-  caddy-data:
-  caddy-config:
+
+networks:
+  web:
+    external: true
