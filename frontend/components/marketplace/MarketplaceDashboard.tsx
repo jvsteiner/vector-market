@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useSphereStore } from "@/lib/sphere-store";
 import WelcomeSplash from "./WelcomeSplash";
 import OnboardingPage from "./OnboardingPage";
+import MerchantsPage from "./MerchantsPage";
+import DevsPage from "./DevsPage";
 import FilterBar, { type FilterCategory } from "./FilterBar";
 import TrustBar from "./TrustBar";
 import LocalMarketView from "./LocalMarketView";
@@ -12,7 +14,7 @@ import DashboardHeader from "./DashboardHeader";
 
 const SPLASH_KEY = "unimarket_splash_seen";
 
-type Screen = "splash" | "onboarding" | "dashboard";
+type Screen = "splash" | "merchants" | "devs" | "onboarding" | "dashboard";
 
 export default function MarketplaceDashboard() {
   const [screen, setScreen] = useState<Screen>("splash");
@@ -45,7 +47,32 @@ export default function MarketplaceDashboard() {
   };
 
   if (screen === "splash") {
-    return <WelcomeSplash onEnter={handleSplashEnter} isExiting={isExiting} />;
+    return (
+      <WelcomeSplash
+        onEnter={handleSplashEnter}
+        isExiting={isExiting}
+        onMerchants={() => setScreen("merchants")}
+        onDevs={() => setScreen("devs")}
+      />
+    );
+  }
+
+  if (screen === "merchants") {
+    return (
+      <MerchantsPage
+        onBack={() => setScreen("splash")}
+        onGetStarted={handleSplashEnter}
+      />
+    );
+  }
+
+  if (screen === "devs") {
+    return (
+      <DevsPage
+        onBack={() => setScreen("splash")}
+        onGetStarted={handleSplashEnter}
+      />
+    );
   }
 
   if (screen === "onboarding") {

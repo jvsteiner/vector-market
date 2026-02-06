@@ -7,9 +7,11 @@ import { cn } from "@/lib/utils";
 interface WelcomeSplashProps {
   onEnter: () => void;
   isExiting: boolean;
+  onMerchants?: () => void;
+  onDevs?: () => void;
 }
 
-export default function WelcomeSplash({ onEnter, isExiting }: WelcomeSplashProps) {
+export default function WelcomeSplash({ onEnter, isExiting, onMerchants, onDevs }: WelcomeSplashProps) {
   const [phase, setPhase] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -104,6 +106,24 @@ export default function WelcomeSplash({ onEnter, isExiting }: WelcomeSplashProps
             <span className="text-white/90 font-semibold text-sm tracking-tight">
               UniMarket
             </span>
+          </div>
+
+          {/* Nav */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onMerchants}
+              className="text-white/40 hover:text-white/80 transition-colors"
+              style={{ fontSize: "0.8rem", padding: "0.375rem 0.75rem", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}
+            >
+              Merchants
+            </button>
+            <button
+              onClick={onDevs}
+              className="text-white/40 hover:text-white/80 transition-colors"
+              style={{ fontSize: "0.8rem", padding: "0.375rem 0.75rem", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}
+            >
+              Devs
+            </button>
           </div>
         </div>
       </div>
