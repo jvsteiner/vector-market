@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="640pt"
+   height="574pt"
+   viewBox="0 0 640 574"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="unimarket.svg"
+   inkscape:export-filename="unimarket-grad.svg"
+   inkscape:export-xdpi="95.7053"
+   inkscape:export-ydpi="95.7053"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs4">
+    <linearGradient
+       id="linearGradient9"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#c551e8;stop-opacity:1;"
+         offset="0.25636008"
+         id="stop9" />
+      <stop
+         style="stop-color:#a283f3;stop-opacity:1;"
+         offset="0.69471622"
+         id="stop10" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient7"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#476ed7;stop-opacity:1;"
+         offset="0.2857143"
+         id="stop7" />
+      <stop
+         style="stop-color:#64baa2;stop-opacity:0.99999982;"
+         offset="0.71819961"
+         id="stop8" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient7"
+       id="linearGradient8"
+       x1="117.80026"
+       y1="319.70264"
+       x2="117.80026"
+       y2="101.61522"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient9"
+       id="linearGradient10"
+       x1="553.42096"
+       y1="234.70071"
+       x2="553.42096"
+       y2="77.438881"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="pt"
+     inkscape:zoom="0.48407194"
+     inkscape:cx="142.5408"
+     inkscape:cy="440.01724"
+     inkscape:window-width="1264"
+     inkscape:window-height="777"
+     inkscape:window-x="0"
+     inkscape:window-y="38"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg4" />
+  <g
+     id="#010101ff" />
+  <g
+     id="#78589eff"
+     style="fill:url(#linearGradient10)">
+    <path
+       fill="#78589e"
+       opacity="1.00"
+       d=" M 538.44 46.27 C 548.81 46.05 559.20 46.04 569.59 46.26 C 569.84 52.65 570.02 59.05 570.29 65.44 C 588.69 66.38 606.90 70.46 623.38 78.86 C 619.80 89.76 616.29 100.67 612.67 111.55 C 598.65 108.44 585.57 101.18 570.80 101.72 C 570.16 111.46 569.44 121.26 570.02 131.03 C 570.02 134.70 574.17 135.27 576.84 136.29 C 592.75 140.99 609.67 146.19 621.67 158.32 C 633.68 172.45 635.40 194.11 626.15 210.12 C 618.93 224.31 604.17 232.89 589.27 237.01 C 583.21 239.23 575.42 237.86 570.31 242.24 C 569.76 249.90 569.92 257.58 569.92 265.25 C 559.27 266.03 548.42 266.76 537.88 264.69 C 537.94 257.00 537.99 249.33 538.04 241.65 C 525.03 239.01 511.57 238.31 498.92 234.03 C 490.67 231.25 482.51 228.12 474.79 224.08 C 477.87 212.80 481.09 201.56 485.07 190.56 C 501.57 198.04 518.74 204.74 537.10 205.35 C 537.95 193.91 538.53 182.42 537.99 170.96 C 538.02 168.14 534.88 167.15 532.73 166.31 C 517.93 161.54 501.32 158.53 489.92 147.07 C 476.98 135.09 475.27 114.94 481.25 99.11 C 487.04 85.94 499.00 76.26 512.50 71.76 C 520.50 69.08 528.89 67.95 537.09 66.03 C 537.52 59.44 537.92 52.85 538.44 46.27 M 522.18 111.12 C 520.46 120.37 530.18 124.35 537.28 126.69 C 538.03 117.67 537.64 108.56 536.47 99.59 C 530.58 101.43 523.16 104.07 522.18 111.12 M 570.21 176.79 C 569.99 186.74 570.09 196.69 570.70 206.63 C 576.19 205.13 581.95 203.29 585.70 198.71 C 589.10 195.50 588.45 190.22 586.68 186.32 C 583.56 180.42 576.99 176.39 570.21 176.79 Z"
+       id="path1"
+       style="fill:url(#linearGradient10)" />
+  </g>
+  <path
+     fill="#64b8ba"
+     opacity="1"
+     d="m 19.99,158.91 c 20.76,-31.23 59.57,-46.1 96.01,-45.98 24.98,-0.87 49.86,6.17 71.33,18.73 11.31,8.43 23.35,17.06 30.26,29.72 7.84,14.32 11.12,31.34 8.2,47.48 -4.7,19.26 -15.99,37.26 -32.88,48.03 -13.6,10.46 -30.41,15.32 -46.94,18.85 -14.15,3.13 -28.71,1.93 -43.07,1.58 -4.35,-0.22 -7.39,3.67 -10.87,5.7 -12.16,9.79 -25.4,18.12 -39.18,25.44 -1.02,-15.05 0.12,-30.12 0.16,-45.18 C 38.11,256.02 25.41,244.37 16.82,230.2 5.44,208.15 5.76,179.6 19.99,158.91 Z"
+     id="path2"
+     style="fill:url(#linearGradient8)" />
+  <path
+     fill="#64b8ba"
+     opacity="1"
+     d="m 185.29,454.87 c 0.28,0.44 0.84,1.34 1.12,1.79 -0.28,-0.45 -0.84,-1.35 -1.12,-1.79 z"
+     id="path3" />
+  <g
+     id="#fcfcfcff"
+     style="fill:#000000"
+     inkscape:export-filename="Gemini_Generated_Image_emvi4pemvi4pemvi.svg"
+     inkscape:export-xdpi="95.7053"
+     inkscape:export-ydpi="95.7053">
+    <path
+       fill="#fcfcfc"
+       opacity="1.00"
+       d=" M 223.07 137.30 C 236.27 136.93 249.48 136.85 262.68 137.22 C 263.46 209.15 262.72 281.09 263.03 353.02 C 263.21 381.60 279.16 410.18 305.11 423.00 C 320.26 430.82 337.93 432.27 354.67 430.52 C 372.93 427.64 390.12 418.17 402.10 404.06 C 414.81 389.24 420.83 369.40 420.04 350.01 C 419.51 320.66 421.77 291.33 420.02 262.00 C 420.35 220.34 419.20 178.65 420.61 137.01 C 435.02 136.96 449.43 136.99 463.85 137.04 C 468.05 149.00 475.97 159.45 486.70 166.32 C 497.00 173.77 509.50 176.85 521.04 181.74 C 520.59 182.92 520.14 184.10 519.71 185.28 C 504.29 181.03 489.83 174.02 474.81 168.64 C 467.09 189.99 461.61 212.12 453.11 233.19 C 474.18 243.72 496.46 252.40 519.86 255.96 C 519.89 264.25 519.72 272.55 520.25 280.84 C 522.75 282.49 525.78 282.96 528.60 283.95 C 528.67 315.82 530.80 347.93 526.77 379.64 C 519.09 436.71 482.66 488.92 431.76 515.83 C 385.08 540.39 328.25 544.40 278.31 527.70 C 246.21 517.09 218.01 496.41 196.20 470.80 C 192.68 466.30 188.46 462.06 186.41 456.66 C 186.13 456.21 185.57 455.31 185.29 454.87 C 172.99 436.93 164.58 416.36 159.88 395.13 C 152.97 361.62 154.65 327.14 155.78 293.18 C 179.64 288.20 202.49 277.20 219.70 259.70 C 232.09 246.40 242.18 230.20 245.17 212.03 C 248.09 196.13 246.64 179.23 239.53 164.58 C 235.76 154.48 228.16 146.64 223.07 137.30 Z"
+       id="path4"
+       style="fill:#000000" />
+  </g>
+</svg>

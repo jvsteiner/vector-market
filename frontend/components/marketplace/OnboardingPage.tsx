@@ -209,9 +209,16 @@ export default function OnboardingPage({ onComplete, onBack }: OnboardingPagePro
           Back
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-indigo-500/20 flex items-center justify-center text-xs font-bold text-indigo-400">
-            U
-          </div>
+          <img
+            src="/unimarket-white.svg"
+            alt="UniMarket"
+            className="h-6 w-auto hidden dark:block"
+          />
+          <img
+            src="/unimarket-black.svg"
+            alt="UniMarket"
+            className="h-6 w-auto block dark:hidden"
+          />
           <span className="text-white/90 font-semibold text-sm">UniMarket</span>
         </div>
         <div className="w-16" />

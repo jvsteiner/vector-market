@@ -91,9 +91,16 @@ export default function WelcomeSplash({ onEnter, isExiting }: WelcomeSplashProps
         <div className="flex items-center justify-between px-8 py-5">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-white/15 backdrop-blur-sm flex items-center justify-center text-xs font-bold text-white">
-              U
-            </div>
+            <img
+              src="/unimarket-white.svg"
+              alt="UniMarket"
+              className="h-7 w-auto hidden dark:block"
+            />
+            <img
+              src="/unimarket-black.svg"
+              alt="UniMarket"
+              className="h-7 w-auto block dark:hidden"
+            />
             <span className="text-white/90 font-semibold text-sm tracking-tight">
               UniMarket
             </span>

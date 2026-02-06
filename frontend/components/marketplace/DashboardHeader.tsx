@@ -44,9 +44,16 @@ export default function DashboardHeader({ onDisconnect, onConnectClick }: Dashbo
     <div className="flex items-center justify-between px-4 py-3 bg-[#0d0d0d] border-b border-white/[0.06]">
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-sm font-bold text-indigo-400">
-          U
-        </div>
+        <img
+          src="/unimarket-white.svg"
+          alt="UniMarket"
+          className="h-7 w-auto hidden dark:block"
+        />
+        <img
+          src="/unimarket-black.svg"
+          alt="UniMarket"
+          className="h-7 w-auto block dark:hidden"
+        />
         <span className="text-white font-semibold tracking-tight">UniMarket</span>
       </div>
 
