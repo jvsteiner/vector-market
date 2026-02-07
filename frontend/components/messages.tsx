@@ -7,9 +7,12 @@ import {
   formatAddress,
   truncateHash,
   formatAmount,
-  type Conversation,
-  type Message,
 } from "@/lib/sphere-store"
+import {
+  useNostrStore,
+  type NostrConversation,
+  type NostrMessage,
+} from "@/lib/nostr-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Identicon } from "@/components/identicon"
@@ -21,26 +24,22 @@ import {
   Wallet,
   DollarSign,
   CheckCircle2,
-  Clock,
-  AlertCircle
+  Loader2,
+  WifiOff,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getSphere, ALPHA_COIN_ID } from "@/lib/sphere-api"
 
 /**
  * Initiate a payment via the Sphere extension.
- * Opens the extension popup for user approval.
- *
- * @param amount - Amount in ALPHA tokens
- * @param recipient - Address or @nametag to send to
  */
 async function initiatePayment(
   amount: number,
   recipient: string
 ): Promise<{ success: boolean; txHash?: string; error?: string }> {
-  const sphere = getSphere();
+  const sphere = getSphere()
   if (!sphere) {
-    return { success: false, error: "Sphere extension not available" };
+    return { success: false, error: "Sphere extension not available" }
   }
 
   try {
@@ -48,102 +47,84 @@ async function initiatePayment(
       recipient: recipient,
       coinId: ALPHA_COIN_ID,
       amount: amount.toString(),
-      message: "Payment via Vector Market"
-    });
+      message: "Payment via UniMarket"
+    })
 
     return {
       success: true,
       txHash: result.transactionId
-    };
+    }
   } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Transaction failed"
-    };
+    }
   }
 }
 
 export function Messages() {
   const {
     identity,
-    conversations,
-    selectedConversation,
-    setSelectedConversation,
-    addMessageToConversation,
-    getConversation,
-    setActiveView,
     transactionStatus,
     setTransactionStatus,
     setToastMessage,
-    updateConversationEscrow,
-    setAgreedPrice,
     refreshBalance,
   } = useSphereStore()
 
+  const {
+    activeConversation,
+    connected,
+    setActiveConversation,
+    getConversation,
+    getConversationList,
+    sendMessage,
+    connect,
+  } = useNostrStore()
+
   const [messageInput, setMessageInput] = useState("")
+  const [sending, setSending] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const currentConversation = selectedConversation
-    ? getConversation(selectedConversation)
+  const conversations = getConversationList()
+  const currentConversation = activeConversation
+    ? getConversation(activeConversation)
     : undefined
 
-  // Pre-populate first message for new conversations
+  // Connect to Nostr relay when identity is available
   useEffect(() => {
-    if (
-      currentConversation &&
-      currentConversation.messages.length === 0 &&
-      currentConversation.listingHash
-    ) {
-      setMessageInput(
-        `Hi, I'm interested in your listing (${truncateHash(currentConversation.listingHash, 6)}). Is it still available?`
-      )
+    if (identity && !connected) {
+      connect()
     }
-  }, [currentConversation])
+  }, [identity, connected, connect])
 
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [currentConversation?.messages])
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !identity || !selectedConversation) return
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || !activeConversation || sending) return
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      fromAddress: identity.address,
-      toAddress: selectedConversation,
-      content: messageInput,
-      timestamp: Date.now(),
-      type: "text",
-    }
-
-    addMessageToConversation(selectedConversation, newMessage)
+    const content = messageInput.trim()
     setMessageInput("")
+    setSending(true)
 
-    // Simulate a response after a delay
-    setTimeout(() => {
-      const responses = [
-        "Yes, it's still available! Are you interested?",
-        "Thanks for reaching out. The item is in great condition.",
-        "I can do 15 ALPHA for it. Let me know if that works.",
-        "Sure, I'm flexible on the price. What's your offer?",
-      ]
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        fromAddress: selectedConversation,
-        toAddress: identity.address,
-        content: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: Date.now(),
-        type: "text",
-      }
-      addMessageToConversation(selectedConversation, response)
-    }, 2000)
+    try {
+      await sendMessage(activeConversation, content)
+    } catch (err) {
+      console.error("Failed to send message:", err)
+      setToastMessage({ type: "error", message: "Failed to send message" })
+      // Restore the input on failure
+      setMessageInput(content)
+    } finally {
+      setSending(false)
+    }
   }
 
   const handleInitiatePayment = async () => {
-    if (!paymentAmount || !selectedConversation || !identity) return
+    if (!paymentAmount || !activeConversation || !identity) return
 
     const amount = parseFloat(paymentAmount)
     if (isNaN(amount) || amount <= 0) return
@@ -151,73 +132,30 @@ export function Messages() {
     setShowPaymentModal(false)
     setTransactionStatus("pending-confirmation")
 
-    // Prefer nametag if available, otherwise use raw address
-    const recipient = currentConversation?.nametag
-      ? `@${currentConversation.nametag}`
-      : selectedConversation
+    const recipient = currentConversation?.peerNametag
+      ? `@${currentConversation.peerNametag}`
+      : activeConversation
 
     const result = await initiatePayment(amount, recipient)
 
     if (result.success) {
       setTransactionStatus("success")
       setToastMessage({ type: "success", message: `Payment of ${formatAmount(amount)} sent successfully!` })
-
-      // Refresh balance after successful payment
       refreshBalance()
 
-      // Add payment message to conversation
-      const paymentMessage: Message = {
-        id: Date.now().toString(),
-        fromAddress: identity.address,
-        toAddress: selectedConversation,
-        content: `Payment sent: ${formatAmount(amount)}`,
-        timestamp: Date.now(),
-        type: "payment-sent",
-        paymentAmount: amount,
+      // Send a message about the payment
+      try {
+        await sendMessage(activeConversation, `Payment sent: ${formatAmount(amount)}`)
+      } catch {
+        // Payment succeeded even if message failed
       }
-      addMessageToConversation(selectedConversation, paymentMessage)
-      setAgreedPrice(selectedConversation, amount)
     } else {
       setTransactionStatus("failed")
       setToastMessage({ type: "error", message: result.error || "Transaction failed" })
     }
 
-    // Reset transaction status after a delay
     setTimeout(() => setTransactionStatus("idle"), 2000)
     setPaymentAmount("")
-  }
-
-  const handleFundEscrow = async () => {
-    if (!currentConversation?.agreedPrice || !selectedConversation || !identity) return
-
-    setTransactionStatus("pending-confirmation")
-
-    const result = await initiatePayment(currentConversation.agreedPrice, "escrow_contract_address")
-
-    if (result.success) {
-      setTransactionStatus("success")
-      setToastMessage({ type: "success", message: "Escrow funded successfully!" })
-      updateConversationEscrow(selectedConversation, "funded")
-
-      // Refresh balance after successful escrow funding
-      refreshBalance()
-
-      const escrowMessage: Message = {
-        id: Date.now().toString(),
-        fromAddress: identity.address,
-        toAddress: selectedConversation,
-        content: `Escrow funded: ${formatAmount(currentConversation.agreedPrice)}`,
-        timestamp: Date.now(),
-        type: "payment-sent",
-        paymentAmount: currentConversation.agreedPrice,
-      }
-      addMessageToConversation(selectedConversation, escrowMessage)
-    } else {
-      setTransactionStatus("failed")
-      setToastMessage({ type: "error", message: result.error || "Failed to fund escrow" })
-    }
-
-    setTimeout(() => setTransactionStatus("idle"), 2000)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -251,14 +189,23 @@ export function Messages() {
       <aside
         className={cn(
           "w-80 border-r border-border bg-card flex-col",
-          selectedConversation ? "hidden md:flex" : "flex w-full md:w-80"
+          activeConversation ? "hidden md:flex" : "flex w-full md:w-80"
         )}
       >
         <div className="border-b border-border p-4">
           <h2 className="text-lg font-semibold text-foreground">Messages</h2>
           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-            <Shield className="h-3 w-3" />
-            End-to-end encrypted via Sphere
+            {connected ? (
+              <>
+                <Shield className="h-3 w-3" />
+                <span>End-to-end encrypted via Nostr</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3" />
+                <span>Connecting to relay...</span>
+              </>
+            )}
           </p>
         </div>
 
@@ -278,10 +225,10 @@ export function Messages() {
           <div className="flex-1 overflow-y-auto">
             {conversations.map((conv) => (
               <ConversationItem
-                key={conv.address}
+                key={conv.peerPubkey}
                 conversation={conv}
-                isSelected={selectedConversation === conv.address}
-                onClick={() => setSelectedConversation(conv.address)}
+                isSelected={activeConversation === conv.peerPubkey}
+                onClick={() => setActiveConversation(conv.peerPubkey)}
               />
             ))}
           </div>
@@ -289,7 +236,7 @@ export function Messages() {
       </aside>
 
       {/* Chat View */}
-      {selectedConversation && currentConversation ? (
+      {activeConversation && currentConversation ? (
         <div className="flex flex-1 flex-col">
           {/* Chat Header */}
           <header className="flex items-center gap-3 border-b border-border p-4">
@@ -297,48 +244,31 @@ export function Messages() {
               variant="ghost"
               size="icon"
               className="md:hidden"
-              onClick={() => setSelectedConversation(null)}
+              onClick={() => setActiveConversation(null)}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <Identicon pubKey={selectedConversation} size={40} />
+            <Identicon pubKey={activeConversation} size={40} />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">
-                {currentConversation.nametag || formatAddress(selectedConversation, 10, 6)}
+                {currentConversation.peerNametag || formatAddress(activeConversation, 10, 6)}
               </p>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Shield className="h-3 w-3" />
                 <span>Encrypted</span>
               </div>
             </div>
-            {/* Payment Actions */}
+            {/* Payment Action */}
             <div className="flex items-center gap-2">
-              {currentConversation.escrowStatus === "funded" ? (
-                <div className="flex items-center gap-1.5 text-xs text-success bg-success/10 px-2.5 py-1.5 rounded-lg">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>Escrow Funded</span>
-                </div>
-              ) : currentConversation.agreedPrice ? (
-                <Button
-                  size="sm"
-                  onClick={handleFundEscrow}
-                  disabled={transactionStatus !== "idle"}
-                  className="gap-1.5"
-                >
-                  <Wallet className="h-4 w-4" />
-                  Fund Escrow
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setShowPaymentModal(true)}
-                  className="gap-1.5"
-                >
-                  <DollarSign className="h-4 w-4" />
-                  Pay Now
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setShowPaymentModal(true)}
+                className="gap-1.5"
+              >
+                <DollarSign className="h-4 w-4" />
+                Pay Now
+              </Button>
             </div>
           </header>
 
@@ -364,7 +294,6 @@ export function Messages() {
               <MessageBubble
                 key={message.id}
                 message={message}
-                isOwn={message.fromAddress === identity?.address}
               />
             ))}
             <div ref={messagesEndRef} />
@@ -374,18 +303,23 @@ export function Messages() {
           <div className="border-t border-border p-4">
             <div className="flex gap-3">
               <Input
-                placeholder="Type a message..."
+                placeholder={connected ? "Type a message..." : "Connecting to relay..."}
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                disabled={!connected || sending}
                 className="flex-1 bg-input border-border"
               />
               <Button
                 onClick={handleSendMessage}
-                disabled={!messageInput.trim()}
+                disabled={!messageInput.trim() || !connected || sending}
                 size="icon"
               >
-                <Send className="h-4 w-4" />
+                {sending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
@@ -413,7 +347,7 @@ export function Messages() {
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl mx-4">
             <h3 className="text-lg font-semibold mb-1">Send Payment</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Enter the amount to send to {currentConversation?.nametag || formatAddress(selectedConversation || "", 8, 4)}
+              Enter the amount to send to {currentConversation?.peerNametag || formatAddress(activeConversation || "", 8, 4)}
             </p>
             <div className="space-y-4">
               <div className="relative">
@@ -427,7 +361,7 @@ export function Messages() {
                   min="0"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                  ALPHA
+                  UCT
                 </span>
               </div>
               <div className="flex gap-3">
@@ -462,7 +396,7 @@ export function Messages() {
 }
 
 interface ConversationItemProps {
-  conversation: Conversation
+  conversation: NostrConversation
   isSelected: boolean
   onClick: () => void
 }
@@ -482,21 +416,16 @@ function ConversationItem({
         isSelected && "bg-secondary"
       )}
     >
-      <Identicon pubKey={conversation.address} size={44} />
+      <Identicon pubKey={conversation.peerPubkey} size={44} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-foreground truncate">
-            {conversation.nametag || formatAddress(conversation.address, 8, 4)}
+            {conversation.peerNametag || formatAddress(conversation.peerPubkey, 8, 4)}
           </p>
-          {conversation.escrowStatus === "funded" && (
-            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-          )}
         </div>
         {lastMessage ? (
           <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {lastMessage.type === "payment-sent" 
-              ? `Payment: ${formatAmount(lastMessage.paymentAmount || 0)}` 
-              : lastMessage.content}
+            {lastMessage.isMine ? "You: " : ""}{lastMessage.content}
           </p>
         ) : conversation.listingHash ? (
           <p className="text-xs text-muted-foreground/60 truncate mt-0.5">
@@ -509,36 +438,21 @@ function ConversationItem({
 }
 
 interface MessageBubbleProps {
-  message: Message
-  isOwn: boolean
+  message: NostrMessage
 }
 
-function MessageBubble({ message, isOwn }: MessageBubbleProps) {
-  const time = new Date(message.timestamp).toLocaleTimeString([], {
+function MessageBubble({ message }: MessageBubbleProps) {
+  const time = new Date(message.timestamp * 1000).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   })
 
-  // Payment message
-  if (message.type === "payment-sent") {
-    return (
-      <div className="flex justify-center">
-        <div className="flex items-center gap-2 rounded-lg bg-success/10 border border-success/20 px-4 py-2">
-          <CheckCircle2 className="h-4 w-4 text-success" />
-          <span className="text-sm text-success">
-            {isOwn ? "You sent" : "Payment received"}: {formatAmount(message.paymentAmount || 0)}
-          </span>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
+    <div className={cn("flex", message.isMine ? "justify-end" : "justify-start")}>
       <div
         className={cn(
           "max-w-[75%] rounded-2xl px-4 py-2",
-          isOwn
+          message.isMine
             ? "bg-primary text-primary-foreground rounded-br-md"
             : "bg-secondary text-secondary-foreground rounded-bl-md"
         )}
@@ -547,7 +461,7 @@ function MessageBubble({ message, isOwn }: MessageBubbleProps) {
         <p
           className={cn(
             "mt-1 text-xs",
-            isOwn ? "text-primary-foreground/60" : "text-muted-foreground"
+            message.isMine ? "text-primary-foreground/60" : "text-muted-foreground"
           )}
         >
           {time}

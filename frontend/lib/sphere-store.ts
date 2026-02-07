@@ -4,14 +4,14 @@ import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import { getSphere, ALPHA_COIN_ID } from "./sphere-api"
 
-export type ConnectionStatus = 
+export type ConnectionStatus =
   | "checking"
-  | "not-installed" 
-  | "not-connected" 
-  | "connecting" 
+  | "not-installed"
+  | "not-connected"
+  | "connecting"
   | "connected"
 
-export type TransactionStatus = 
+export type TransactionStatus =
   | "idle"
   | "pending-confirmation"
   | "sending"
@@ -35,31 +35,11 @@ export interface Listing {
   currency?: string
 }
 
-export interface Message {
-  id: string
-  fromAddress: string
-  toAddress: string
-  content: string
-  timestamp: number
-  type: "text" | "payment-request" | "payment-sent"
-  paymentAmount?: number
-}
-
-export interface Conversation {
-  address: string
-  nametag?: string
-  messages: Message[]
-  listingHash?: string
-  listingPrice?: number
-  agreedPrice?: number
-  escrowStatus?: "none" | "pending" | "funded" | "released"
-}
-
 interface SphereStore {
   // Connection
   connectionStatus: ConnectionStatus
   setConnectionStatus: (status: ConnectionStatus) => void
-  
+
   // Identity
   identity: SphereIdentity | null
   setIdentity: (identity: SphereIdentity | null) => void
@@ -75,19 +55,9 @@ interface SphereStore {
   addListing: (listing: Listing) => void
   setListings: (listings: Listing[]) => void
 
-  // Conversations
-  conversations: Conversation[]
-  addConversation: (conv: Conversation) => void
-  addMessageToConversation: (address: string, message: Message) => void
-  getConversation: (address: string) => Conversation | undefined
-  updateConversationEscrow: (address: string, status: Conversation["escrowStatus"]) => void
-  setAgreedPrice: (address: string, price: number) => void
-
   // UI State
   activeView: "search" | "create" | "messages"
   setActiveView: (view: "search" | "create" | "messages") => void
-  selectedConversation: string | null
-  setSelectedConversation: (address: string | null) => void
 
   // Toast messages
   toastMessage: { type: "success" | "error" | "info"; message: string } | null
@@ -107,9 +77,7 @@ const initialState = {
   transactionStatus: "idle" as TransactionStatus,
   lastTransactionError: null,
   listings: [],
-  conversations: [],
   activeView: "search" as const,
-  selectedConversation: null,
   toastMessage: null,
 }
 
@@ -127,46 +95,7 @@ export const useSphereStore = create<SphereStore>()(
         set((state) => ({ listings: [listing, ...state.listings] })),
       setListings: (listings) => set({ listings }),
 
-      addConversation: (conv) =>
-        set((state) => {
-          const exists = state.conversations.find((c) => c.address === conv.address)
-          if (exists) return state
-          return { conversations: [...state.conversations, conv] }
-        }),
-
-      addMessageToConversation: (address, message) =>
-        set((state) => ({
-          conversations: state.conversations.map((conv) =>
-            conv.address === address
-              ? { ...conv, messages: [...conv.messages, message] }
-              : conv
-          ),
-        })),
-
-      getConversation: (address) =>
-        get().conversations.find((c) => c.address === address),
-
-      updateConversationEscrow: (address, status) =>
-        set((state) => ({
-          conversations: state.conversations.map((conv) =>
-            conv.address === address
-              ? { ...conv, escrowStatus: status }
-              : conv
-          ),
-        })),
-
-      setAgreedPrice: (address, price) =>
-        set((state) => ({
-          conversations: state.conversations.map((conv) =>
-            conv.address === address
-              ? { ...conv, agreedPrice: price }
-              : conv
-          ),
-        })),
-
       setActiveView: (activeView) => set({ activeView }),
-      setSelectedConversation: (selectedConversation) =>
-        set({ selectedConversation }),
 
       setToastMessage: (toastMessage) => set({ toastMessage }),
 
@@ -190,7 +119,7 @@ export const useSphereStore = create<SphereStore>()(
       },
 
       reset: () => set(initialState),
-      
+
       disconnect: () => set({
         connectionStatus: "not-connected",
         identity: null,
@@ -203,7 +132,6 @@ export const useSphereStore = create<SphereStore>()(
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         identity: state.identity,
-        conversations: state.conversations,
         activeView: state.activeView,
         connectionStatus: state.connectionStatus === "connected" ? "connected" : "checking",
       }),

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSphereStore, truncateHash, formatAddress, formatAmount, type Listing } from "@/lib/sphere-store";
+import { useNostrStore } from "@/lib/nostr-store";
 import { Search, Loader2, MessageCircle, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { Identicon } from "@/components/identicon";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,8 @@ function transformToListing(intent: SearchIntent): Listing {
 }
 
 export default function SearchListings() {
-  const { identity, addConversation, setActiveView, setSelectedConversation } = useSphereStore();
+  const { identity, setActiveView } = useSphereStore();
+  const { openConversation } = useNostrStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<Listing[]>([]);
@@ -82,16 +84,18 @@ export default function SearchListings() {
   const handleContactSeller = (listing: Listing) => {
     if (!identity) return;
 
-    addConversation({
-      address: listing.sellerAddress,
-      nametag: listing.sellerNametag,
-      messages: [],
+    // The sellerAddress is the Nostr pubkey (from agent_public_key)
+    const peerPubkey = listing.sellerAddress;
+    const nametag = listing.sellerNametag?.replace(/^@/, '');
+
+    openConversation(peerPubkey, {
+      nametag,
       listingHash: listing.hash,
       listingPrice: listing.price,
-      escrowStatus: "none",
     });
 
-    setSelectedConversation(listing.sellerAddress);
+    // Navigate to messages view
+    setActiveView("messages");
   };
 
   return (

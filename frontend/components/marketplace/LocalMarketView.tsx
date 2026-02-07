@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Search, PlusCircle, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSphereStore } from "@/lib/sphere-store";
+import { useNostrStore } from "@/lib/nostr-store";
 import SearchListings from "@/components/search-listings";
 import CreateListing from "@/components/create-listing";
 import { Messages } from "@/components/messages";
@@ -18,7 +18,7 @@ const tabs: { id: LocalTab; label: string; icon: React.ElementType }[] = [
 
 export default function LocalMarketView() {
   const [activeTab, setActiveTab] = useState<LocalTab>("discover");
-  const { conversations } = useSphereStore();
+  const conversations = useNostrStore((s) => s.getConversationList());
 
   const unreadCount = conversations.filter(c => c.messages.length > 0).length;
 

@@ -102,6 +102,12 @@ export interface SphereAPI {
   /** Sign a NOSTR event hash - opens popup for approval */
   signNostrEvent(eventHash: string): Promise<string>;
 
+  /** NIP-44 encryption/decryption - auto-approved for connected sites */
+  nip44: {
+    encrypt(recipientPubkey: string, plaintext: string): Promise<string>;
+    decrypt(senderPubkey: string, ciphertext: string): Promise<string>;
+  };
+
   /** Resolve a nametag to its pubkey and proxy address */
   resolveNametag(nametag: string): Promise<NametagResolution | null>;
 
