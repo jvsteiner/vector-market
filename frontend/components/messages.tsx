@@ -10,6 +10,7 @@ import {
 } from "@/lib/sphere-store"
 import {
   useNostrStore,
+  selectConversationList,
   type NostrConversation,
   type NostrMessage,
 } from "@/lib/nostr-store"
@@ -75,22 +76,20 @@ export function Messages() {
     activeConversation,
     connected,
     setActiveConversation,
-    getConversation,
-    getConversationList,
     sendMessage,
     connect,
   } = useNostrStore()
+
+  const conversations = useNostrStore(selectConversationList)
+  const currentConversation = useNostrStore((s) =>
+    s.activeConversation ? s.conversations[s.activeConversation] : undefined
+  )
 
   const [messageInput, setMessageInput] = useState("")
   const [sending, setSending] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  const conversations = getConversationList()
-  const currentConversation = activeConversation
-    ? getConversation(activeConversation)
-    : undefined
 
   // Connect to Nostr relay when identity is available
   useEffect(() => {
