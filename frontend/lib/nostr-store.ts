@@ -37,15 +37,11 @@ export interface NostrConversation {
 
 interface NostrStore {
   // State
-  conversations: Map<string, NostrConversation>
+  conversations: Record<string, NostrConversation>
   activeConversation: string | null
   connected: boolean
   myPubkey: string | null
   subscriptionId: string | null
-
-  // Computed
-  getConversation: (peerPubkey: string) => NostrConversation | undefined
-  getConversationList: () => NostrConversation[]
 
   // Actions
   connect: () => Promise<void>
@@ -62,24 +58,11 @@ interface NostrStore {
 const seenEvents = new Set<string>()
 
 export const useNostrStore = create<NostrStore>()((set, get) => ({
-  conversations: new Map(),
+  conversations: {},
   activeConversation: null,
   connected: false,
   myPubkey: null,
   subscriptionId: null,
-
-  getConversation: (peerPubkey) => get().conversations.get(peerPubkey),
-
-  getConversationList: () => {
-    const convs = Array.from(get().conversations.values())
-    // Sort by last message timestamp (most recent first)
-    convs.sort((a, b) => {
-      const aTime = a.messages.length > 0 ? a.messages[a.messages.length - 1].timestamp : 0
-      const bTime = b.messages.length > 0 ? b.messages[b.messages.length - 1].timestamp : 0
-      return bTime - aTime
-    })
-    return convs
-  },
 
   connect: async () => {
     const sphere = getSphere()
@@ -122,7 +105,7 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
       connected: false,
       subscriptionId: null,
       myPubkey: null,
-      conversations: new Map(),
+      conversations: {},
       activeConversation: null,
     })
   },
@@ -153,36 +136,42 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
     }
 
     set((state) => {
-      const conversations = new Map(state.conversations)
-      const conv = conversations.get(peerPubkey)
+      const conv = state.conversations[peerPubkey]
       if (conv) {
-        conversations.set(peerPubkey, {
-          ...conv,
-          messages: [...conv.messages, msg],
-        })
-      } else {
-        conversations.set(peerPubkey, {
-          peerPubkey,
-          messages: [msg],
-        })
+        return {
+          conversations: {
+            ...state.conversations,
+            [peerPubkey]: { ...conv, messages: [...conv.messages, msg] },
+          },
+        }
       }
-      return { conversations }
+      return {
+        conversations: {
+          ...state.conversations,
+          [peerPubkey]: { peerPubkey, messages: [msg] },
+        },
+      }
     })
   },
 
   openConversation: (peerPubkey, opts) => {
     set((state) => {
-      const conversations = new Map(state.conversations)
-      if (!conversations.has(peerPubkey)) {
-        conversations.set(peerPubkey, {
-          peerPubkey,
-          peerNametag: opts?.nametag,
-          listingHash: opts?.listingHash,
-          listingPrice: opts?.listingPrice,
-          messages: [],
-        })
+      if (state.conversations[peerPubkey]) {
+        return { activeConversation: peerPubkey }
       }
-      return { conversations, activeConversation: peerPubkey }
+      return {
+        conversations: {
+          ...state.conversations,
+          [peerPubkey]: {
+            peerPubkey,
+            peerNametag: opts?.nametag,
+            listingHash: opts?.listingHash,
+            listingPrice: opts?.listingPrice,
+            messages: [],
+          },
+        },
+        activeConversation: peerPubkey,
+      }
     })
   },
 
@@ -190,6 +179,19 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
     set({ activeConversation: peerPubkey })
   },
 }))
+
+// ============ Selectors ============
+
+/** Get a sorted list of conversations (most recent first) */
+export function selectConversationList(state: NostrStore): NostrConversation[] {
+  const convs = Object.values(state.conversations)
+  convs.sort((a, b) => {
+    const aTime = a.messages.length > 0 ? a.messages[a.messages.length - 1].timestamp : 0
+    const bTime = b.messages.length > 0 ? b.messages[b.messages.length - 1].timestamp : 0
+    return bTime - aTime
+  })
+  return convs
+}
 
 // ============ Internal ============
 
@@ -218,20 +220,24 @@ async function handleIncomingGiftWrap(eventData: SignedEventData): Promise<void>
     }
 
     useNostrStore.setState((state) => {
-      const conversations = new Map(state.conversations)
-      const conv = conversations.get(peerPubkey)
+      const conv = state.conversations[peerPubkey]
       if (conv) {
         // Check dedup within conversation
         if (conv.messages.some((m) => m.id === msg.id)) return state
         const messages = [...conv.messages, msg].sort((a, b) => a.timestamp - b.timestamp)
-        conversations.set(peerPubkey, { ...conv, messages })
-      } else {
-        conversations.set(peerPubkey, {
-          peerPubkey,
-          messages: [msg],
-        })
+        return {
+          conversations: {
+            ...state.conversations,
+            [peerPubkey]: { ...conv, messages },
+          },
+        }
       }
-      return { conversations }
+      return {
+        conversations: {
+          ...state.conversations,
+          [peerPubkey]: { peerPubkey, messages: [msg] },
+        },
+      }
     })
   } catch (err) {
     console.error('[NostrStore] Failed to unwrap message:', err)
@@ -239,8 +245,6 @@ async function handleIncomingGiftWrap(eventData: SignedEventData): Promise<void>
 }
 
 function getPeerFromTags(event: SignedEventData): string | null {
-  // The gift wrap p-tag contains the recipient pubkey
-  // For messages we sent (echoed back), the peer is the p-tag value
   for (const tag of event.tags) {
     if (tag[0] === 'p' && tag[1]) return tag[1]
   }
