@@ -77,8 +77,13 @@ export async function apiPublicPost(path: string, body: unknown): Promise<any> {
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error ?? `HTTP ${res.status}`);
-  }
+  if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+  return data;
+}
+
+export async function apiPublicGet(path: string): Promise<any> {
+  const res = await fetch(`${config.serverUrl}${path}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
   return data;
 }

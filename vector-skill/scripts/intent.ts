@@ -1,4 +1,4 @@
-import { getPrivateKeyHex } from '../lib/wallet.js';
+import { loadWallet, getPrivateKeyHex } from '../lib/wallet.js';
 import { apiPost, apiGet, apiDelete } from '../lib/api.js';
 
 const command = process.argv[2];
@@ -16,18 +16,19 @@ function parseArgs(): Record<string, string> {
 }
 
 async function main() {
-  const privateKey = getPrivateKeyHex();
+  const sphere = await loadWallet();
+  const privateKey = getPrivateKeyHex(sphere);
 
   switch (command) {
     case 'post': {
       const args = parseArgs();
-      if (!args.description || !args.type) {
-        console.log('Usage: npx tsx scripts/intent.ts post --description "..." --type <sell|buy> [--category ...] [--price ...] [--location ...]');
+      if (!args.desc || !args.type) {
+        console.log('Usage: npx tsx scripts/intent.ts post --type <sell|buy> --desc "..." [--category <cat>] [--price <n>] [--location <loc>]');
         process.exit(1);
       }
 
       const result = await apiPost('/api/intents', {
-        description: args.description,
+        description: args.desc,
         intent_type: args.type,
         category: args.category,
         price: args.price ? parseFloat(args.price) : undefined,
@@ -66,6 +67,9 @@ async function main() {
 
     default:
       console.log('Usage: npx tsx scripts/intent.ts <post|list|close>');
+      console.log('  post  --type <sell|buy> --desc "..." [--category <cat>] [--price <n>] [--location <loc>]');
+      console.log('  list');
+      console.log('  close <intent-id>');
       process.exit(1);
   }
 }

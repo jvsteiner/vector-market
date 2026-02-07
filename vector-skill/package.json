@@ -5,7 +5,8 @@
   "type": "module",
   "dependencies": {
     "@noble/curves": "^2.0.1",
-    "@noble/hashes": "^2.0.1"
+    "@noble/hashes": "^2.0.1",
+    "@unicitylabs/sphere-sdk": "^0.1.4"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
