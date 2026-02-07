@@ -182,15 +182,22 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
 
 // ============ Selectors ============
 
+// Memoized selector — returns the same array reference when conversations haven't changed
+let _cachedConvRef: Record<string, NostrConversation> = {}
+let _cachedList: NostrConversation[] = []
+
 /** Get a sorted list of conversations (most recent first) */
 export function selectConversationList(state: NostrStore): NostrConversation[] {
+  if (state.conversations === _cachedConvRef) return _cachedList
+  _cachedConvRef = state.conversations
   const convs = Object.values(state.conversations)
   convs.sort((a, b) => {
     const aTime = a.messages.length > 0 ? a.messages[a.messages.length - 1].timestamp : 0
     const bTime = b.messages.length > 0 ? b.messages[b.messages.length - 1].timestamp : 0
     return bTime - aTime
   })
-  return convs
+  _cachedList = convs
+  return _cachedList
 }
 
 // ============ Internal ============

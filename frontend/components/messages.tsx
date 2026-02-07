@@ -72,14 +72,11 @@ export function Messages() {
     refreshBalance,
   } = useSphereStore()
 
-  const {
-    activeConversation,
-    connected,
-    setActiveConversation,
-    sendMessage,
-    connect,
-  } = useNostrStore()
-
+  const activeConversation = useNostrStore((s) => s.activeConversation)
+  const connected = useNostrStore((s) => s.connected)
+  const setActiveConversation = useNostrStore((s) => s.setActiveConversation)
+  const sendMessage = useNostrStore((s) => s.sendMessage)
+  const connect = useNostrStore((s) => s.connect)
   const conversations = useNostrStore(selectConversationList)
   const currentConversation = useNostrStore((s) =>
     s.activeConversation ? s.conversations[s.activeConversation] : undefined

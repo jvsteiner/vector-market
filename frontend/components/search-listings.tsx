@@ -45,7 +45,7 @@ function transformToListing(intent: SearchIntent): Listing {
 
 export default function SearchListings() {
   const { identity, setActiveView } = useSphereStore();
-  const { openConversation } = useNostrStore();
+  const openConversation = useNostrStore((s) => s.openConversation);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<Listing[]>([]);
