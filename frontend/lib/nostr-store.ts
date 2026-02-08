@@ -69,7 +69,16 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
     if (!sphere) return
 
     try {
-      const { hex: myPubkey } = await sphere.getNostrPublicKey()
+      let nostrKey: { hex: string }
+      try {
+        nostrKey = await sphere.getNostrPublicKey()
+      } catch {
+        // Extension may have lost connection (service worker restart).
+        // Re-establish connection and retry.
+        await sphere.connect()
+        nostrKey = await sphere.getNostrPublicKey()
+      }
+      const myPubkey = nostrKey.hex
       set({ myPubkey })
 
       // Connect relay
