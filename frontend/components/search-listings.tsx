@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useSphereStore, truncateHash, formatAddress, formatAmount, type Listing } from "@/lib/sphere-store";
 import { useNostrStore } from "@/lib/nostr-store";
+import { deriveNostrPubkey } from "@/lib/nostr";
+import { getSphere } from "@/lib/sphere-api";
 import { Search, Loader2, MessageCircle, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { Identicon } from "@/components/identicon";
 import { cn } from "@/lib/utils";
@@ -82,12 +84,28 @@ export default function SearchListings({ onNavigateToMessages }: { onNavigateToM
     }
   };
 
-  const handleContactSeller = (listing: Listing) => {
-    if (!identity || !listing.sellerNostrPubkey) return;
+  const handleContactSeller = async (listing: Listing) => {
+    if (!identity) return;
 
-    // Use the Nostr pubkey (from contact_handle) for NIP-17 encryption
-    const peerPubkey = listing.sellerNostrPubkey;
     const nametag = listing.sellerNametag?.replace(/^@/, '');
+    let peerPubkey: string | null = listing.sellerNostrPubkey || null;
+
+    // If we don't have a Nostr pubkey yet, resolve the nametag to derive one
+    if (!peerPubkey && nametag) {
+      const sphere = getSphere();
+      if (!sphere) return;
+
+      try {
+        const resolved = await sphere.resolveNametag(nametag);
+        if (resolved?.pubkey) {
+          peerPubkey = deriveNostrPubkey(resolved.pubkey);
+        }
+      } catch (err) {
+        console.error('Failed to resolve nametag:', err);
+      }
+    }
+
+    if (!peerPubkey) return;
 
     openConversation(peerPubkey, {
       nametag,
@@ -155,7 +173,7 @@ export default function SearchListings({ onNavigateToMessages }: { onNavigateToM
                 key={listing.id}
                 listing={listing}
                 onContact={() => handleContactSeller(listing)}
-                isConnected={!!identity && !!listing.sellerNostrPubkey}
+                isConnected={!!identity && !!(listing.sellerNostrPubkey || listing.sellerNametag)}
               />
             ))}
           </div>

@@ -8,9 +8,38 @@
 
 import { NostrKeyManager, NIP44, Event } from '@unicitylabs/nostr-js-sdk'
 import type { SignedEventData } from '@unicitylabs/nostr-js-sdk'
+import { schnorr } from '@noble/curves/secp256k1'
+import { sha256 } from '@noble/hashes/sha256'
 import type { SphereAPI } from './sphere-api'
 
 const RELAY_URL = 'wss://nostr-relay.testnet.unicity.network'
+
+// ============ Key Derivation ============
+
+/**
+ * Derive a Nostr public key from a Sphere public key.
+ * Mirrors the extension's deriveNostrKeyPair() logic:
+ *   privkey = SHA-256("SPHERE_NOSTR_V1" || spherePubkeyBytes)
+ *   pubkey  = schnorr.getPublicKey(privkey)
+ */
+export function deriveNostrPubkey(spherePubkeyHex: string): string {
+  const pubKeyBytes = hexToBytes(spherePubkeyHex)
+  const domainSeparator = new TextEncoder().encode('SPHERE_NOSTR_V1')
+  const combined = new Uint8Array(domainSeparator.length + pubKeyBytes.length)
+  combined.set(domainSeparator)
+  combined.set(pubKeyBytes, domainSeparator.length)
+  const privateKey = sha256(combined)
+  const publicKey = schnorr.getPublicKey(privateKey)
+  return Array.from(publicKey).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16)
+  }
+  return bytes
+}
 
 // ============ Relay Client ============
 
