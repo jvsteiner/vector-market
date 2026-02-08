@@ -48,6 +48,7 @@ type EoseCallback = () => void
 
 interface Subscription {
   id: string
+  filter: Record<string, unknown>
   onEvent: EventCallback
   onEose?: EoseCallback
 }
@@ -81,9 +82,9 @@ export class NostrRelay {
       this.reconnectDelay = 1000
       this.onConnect?.()
 
-      // Re-subscribe existing subscriptions
+      // Re-subscribe existing subscriptions after reconnect
       for (const [, sub] of this.subscriptions) {
-        this.sendRaw(sub.id, 'resubscribe')
+        this.sendRaw(sub.id)
       }
 
       // Flush pending publishes
@@ -155,7 +156,7 @@ export class NostrRelay {
     onEose?: EoseCallback
   ): string {
     const id = `sub_${++this.subCounter}`
-    this.subscriptions.set(id, { id, onEvent, onEose })
+    this.subscriptions.set(id, { id, filter, onEvent, onEose })
 
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(['REQ', id, filter]))
@@ -186,9 +187,11 @@ export class NostrRelay {
   }
 
   // Re-send subscription request (used after reconnect)
-  private sendRaw(subId: string, _reason: string): void {
-    // We need the original filter to re-subscribe.
-    // For simplicity, the store will handle re-subscribing after reconnect.
+  private sendRaw(subId: string): void {
+    const sub = this.subscriptions.get(subId)
+    if (sub && this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(['REQ', subId, sub.filter]))
+    }
   }
 }
 

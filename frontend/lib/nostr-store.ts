@@ -57,9 +57,6 @@ interface NostrStore {
 // Track seen event IDs for dedup
 const seenEvents = new Set<string>()
 
-// Prevent repeated connect attempts when wallet is unavailable
-let connectFailed = false
-
 export const useNostrStore = create<NostrStore>()((set, get) => ({
   conversations: {},
   activeConversation: null,
@@ -68,7 +65,9 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
   subscriptionId: null,
 
   connect: async () => {
-    if (connectFailed) return
+    // Already subscribed — relay handles its own reconnection
+    if (get().subscriptionId) return
+
     const sphere = getSphere()
     if (!sphere) return
 
@@ -77,26 +76,24 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
       try {
         nostrKey = await sphere.getNostrPublicKey()
       } catch {
-        // If getNostrPublicKey fails, the wallet is locked or disconnected.
-        // Don't call sphere.connect() here — that opens a popup.
-        // The user can reconnect from the landing page (reload to retry).
+        // Wallet may be locked or disconnected — don't open a popup.
+        // The user can reload to retry.
         console.warn('[NostrStore] Could not get Nostr key — wallet may be disconnected')
-        connectFailed = true
         return
       }
       const myPubkey = nostrKey.hex
       set({ myPubkey })
 
-      // Connect relay
+      // Create subscription before connecting — it will be sent when
+      // the WebSocket opens (and re-sent automatically on reconnect)
+      const subId = nostrRelay.subscribe(
+        { kinds: [1059], '#p': [myPubkey] },
+        (eventData: SignedEventData) => handleIncomingGiftWrap(eventData),
+      )
+      set({ subscriptionId: subId })
+
       nostrRelay.onConnect = () => {
         set({ connected: true })
-
-        // Subscribe to gift wraps addressed to us
-        const subId = nostrRelay.subscribe(
-          { kinds: [1059], '#p': [myPubkey] },
-          (eventData: SignedEventData) => handleIncomingGiftWrap(eventData),
-        )
-        set({ subscriptionId: subId })
       }
 
       nostrRelay.onDisconnect = () => {
@@ -116,7 +113,6 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
     }
     nostrRelay.disconnect()
     seenEvents.clear()
-    connectFailed = false
     set({
       connected: false,
       subscriptionId: null,
