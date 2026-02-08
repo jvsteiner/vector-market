@@ -57,6 +57,9 @@ interface NostrStore {
 // Track seen event IDs for dedup
 const seenEvents = new Set<string>()
 
+// Prevent repeated connect attempts when wallet is unavailable
+let connectFailed = false
+
 export const useNostrStore = create<NostrStore>()((set, get) => ({
   conversations: {},
   activeConversation: null,
@@ -65,6 +68,7 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
   subscriptionId: null,
 
   connect: async () => {
+    if (connectFailed) return
     const sphere = getSphere()
     if (!sphere) return
 
@@ -73,10 +77,12 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
       try {
         nostrKey = await sphere.getNostrPublicKey()
       } catch {
-        // Extension may have lost connection (service worker restart).
-        // Re-establish connection and retry.
-        await sphere.connect()
-        nostrKey = await sphere.getNostrPublicKey()
+        // If getNostrPublicKey fails, the wallet is locked or disconnected.
+        // Don't call sphere.connect() here — that opens a popup.
+        // The user can reconnect from the landing page (reload to retry).
+        console.warn('[NostrStore] Could not get Nostr key — wallet may be disconnected')
+        connectFailed = true
+        return
       }
       const myPubkey = nostrKey.hex
       set({ myPubkey })
@@ -110,6 +116,7 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
     }
     nostrRelay.disconnect()
     seenEvents.clear()
+    connectFailed = false
     set({
       connected: false,
       subscriptionId: null,
@@ -126,13 +133,24 @@ export const useNostrStore = create<NostrStore>()((set, get) => ({
       throw new Error('Not connected')
     }
 
+    // Wrap content with sender nametag for SDK compatibility
+    let myNametag: string | undefined
+    try {
+      const tag = await sphere.getMyNametag()
+      if (tag?.name) myNametag = tag.name
+    } catch { /* nametag not available */ }
+
+    const wrappedContent = myNametag
+      ? JSON.stringify({ senderNametag: myNametag, text: content })
+      : content
+
     // Send via NIP-17
     const eventId = await sendPrivateMessage(
       nostrRelay,
       sphere,
       myPubkey,
       peerPubkey,
-      content
+      wrappedContent
     )
 
     // Add to local state immediately

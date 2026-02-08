@@ -379,10 +379,21 @@ export async function unwrapPrivateMessage(
       return null
     }
 
+    // SDK wraps DM content as JSON: {senderNametag, text} — unwrap if present
+    let content = rumor.content
+    try {
+      const parsed = JSON.parse(content)
+      if (typeof parsed === 'object' && parsed.text !== undefined) {
+        content = parsed.text
+      }
+    } catch {
+      // Plain text — use as-is
+    }
+
     return {
       id: giftWrap.id,
       senderPubkey: rumor.pubkey,
-      content: rumor.content,
+      content,
       timestamp: rumor.created_at,
     }
   } catch (err) {

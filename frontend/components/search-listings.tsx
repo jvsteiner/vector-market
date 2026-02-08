@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useSphereStore, truncateHash, formatAddress, formatAmount, type Listing } from "@/lib/sphere-store";
 import { useNostrStore } from "@/lib/nostr-store";
-import { deriveNostrPubkey } from "@/lib/nostr";
 import { getSphere } from "@/lib/sphere-api";
 import { Search, Loader2, MessageCircle, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { Identicon } from "@/components/identicon";
@@ -98,7 +97,8 @@ export default function SearchListings({ onNavigateToMessages }: { onNavigateToM
       try {
         const resolved = await sphere.resolveNametag(nametag);
         if (resolved?.pubkey) {
-          peerPubkey = deriveNostrPubkey(resolved.pubkey);
+          // resolved.pubkey is already the Nostr x-only pubkey from the nametag binding event
+          peerPubkey = resolved.pubkey;
         }
       } catch (err) {
         console.error('Failed to resolve nametag:', err);
