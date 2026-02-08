@@ -41,8 +41,10 @@ async function detectSphereExtension(): Promise<{ installed: boolean; connected:
 
 /**
  * Connect to the Sphere wallet and get identity + balance + nametag.
+ * When `silent` is true, uses getActiveIdentity() instead of connect()
+ * to avoid opening the extension popup.
  */
-async function connectToSphere(): Promise<{
+async function connectToSphere(silent = false): Promise<{
   address: string
   nametag?: string
   balance: number
@@ -52,7 +54,14 @@ async function connectToSphere(): Promise<{
     throw new Error("Sphere extension not installed");
   }
 
-  const identity = await sphere.connect();
+  const identity = silent
+    ? await sphere.getActiveIdentity()
+    : await sphere.connect();
+
+  if (!identity) {
+    throw new Error("No active identity");
+  }
+
   const balances = await sphere.getBalances();
 
   // Find ALPHA balance
@@ -105,8 +114,8 @@ export function LandingPage() {
       if (!installed) {
         setConnectionStatus("not-installed")
       } else if (connected) {
-        // Auto-reconnect if previously connected
-        handleConnect()
+        // Silently restore session without opening the extension popup
+        handleSilentReconnect()
       } else {
         setConnectionStatus("not-connected")
       }
@@ -140,6 +149,22 @@ export function LandingPage() {
     const interval = setInterval(checkConnection, 5000);
     return () => clearInterval(interval);
   }, [connectionStatus, disconnect, setToastMessage]);
+
+  const handleSilentReconnect = async () => {
+    setConnectionStatus("connecting")
+    try {
+      const result = await connectToSphere(true)
+      setIdentity({
+        address: result.address,
+        nametag: result.nametag,
+        balance: result.balance
+      })
+      setConnectionStatus("connected")
+    } catch {
+      // Wallet is installed but not connected — just show the button
+      setConnectionStatus("not-connected")
+    }
+  }
 
   const handleConnect = async () => {
     setConnectionStatus("connecting")
