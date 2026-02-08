@@ -29,13 +29,14 @@ interface SearchIntent {
 function transformToListing(intent: SearchIntent): Listing {
   const nametag = intent.agent_nametag
     ? `@${intent.agent_nametag}`
-    : intent.contact_handle || undefined;
+    : undefined;
 
   return {
     id: intent.id,
     hash: intent.id,
     sellerAddress: intent.agent_public_key || intent.id,
     sellerNametag: nametag,
+    sellerNostrPubkey: intent.contact_handle || undefined,
     timestamp: new Date(intent.created_at).getTime(),
     description: intent.description,
     price: intent.price ?? undefined,
@@ -43,8 +44,8 @@ function transformToListing(intent: SearchIntent): Listing {
   };
 }
 
-export default function SearchListings() {
-  const { identity, setActiveView } = useSphereStore();
+export default function SearchListings({ onNavigateToMessages }: { onNavigateToMessages?: () => void }) {
+  const { identity } = useSphereStore();
   const openConversation = useNostrStore((s) => s.openConversation);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -82,10 +83,10 @@ export default function SearchListings() {
   };
 
   const handleContactSeller = (listing: Listing) => {
-    if (!identity) return;
+    if (!identity || !listing.sellerNostrPubkey) return;
 
-    // The sellerAddress is the Nostr pubkey (from agent_public_key)
-    const peerPubkey = listing.sellerAddress;
+    // Use the Nostr pubkey (from contact_handle) for NIP-17 encryption
+    const peerPubkey = listing.sellerNostrPubkey;
     const nametag = listing.sellerNametag?.replace(/^@/, '');
 
     openConversation(peerPubkey, {
@@ -94,8 +95,8 @@ export default function SearchListings() {
       listingPrice: listing.price,
     });
 
-    // Navigate to messages view
-    setActiveView("messages");
+    // Navigate to messages tab
+    onNavigateToMessages?.();
   };
 
   return (
@@ -154,7 +155,7 @@ export default function SearchListings() {
                 key={listing.id}
                 listing={listing}
                 onContact={() => handleContactSeller(listing)}
-                isConnected={!!identity}
+                isConnected={!!identity && !!listing.sellerNostrPubkey}
               />
             ))}
           </div>

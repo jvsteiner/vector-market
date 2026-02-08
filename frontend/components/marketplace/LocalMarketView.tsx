@@ -55,8 +55,8 @@ export default function LocalMarketView() {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto">
-        {activeTab === "discover" && <SearchListings />}
+      <div className={cn("flex-1", activeTab === "messages" ? "overflow-hidden" : "overflow-y-auto")}>
+        {activeTab === "discover" && <SearchListings onNavigateToMessages={() => setActiveTab("messages")} />}
         {activeTab === "sell" && <CreateListing />}
         {activeTab === "messages" && <Messages />}
       </div>

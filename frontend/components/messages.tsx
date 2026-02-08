@@ -180,7 +180,7 @@ export function Messages() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
+    <div className="flex h-full">
       {/* Conversation List */}
       <aside
         className={cn(

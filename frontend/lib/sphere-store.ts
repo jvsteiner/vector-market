@@ -29,6 +29,7 @@ export interface Listing {
   hash: string
   sellerAddress: string
   sellerNametag?: string
+  sellerNostrPubkey?: string
   timestamp: number
   description?: string
   price?: number
